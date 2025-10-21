@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Paper,
@@ -11,13 +11,27 @@ import {
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
   const [loading, setLoading] = useState(false);
+
+  // Mostrar mensaje de éxito si viene del registro
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccess(location.state.message);
+
+      // Pre-llenar el username si viene del registro
+      if (location.state.username) {
+        formik.setFieldValue('username', location.state.username);
+      }
+    }
+  }, [location.state]);
 
   const formik = useFormik({
     initialValues: {
@@ -31,37 +45,71 @@ const Login = () => {
     onSubmit: async (values) => {
       setLoading(true);
       setError('');
-      
+      setSuccess('');
+
       try {
-        // Intentar login
+        console.log('🔄 Intentando login para usuario:', values.username);
+
+        // Intentar login en user-login (auth-service)
         const response = await authService.login(values);
-        
-        // Si el login es exitoso, guardar token y redirigir
-        localStorage.setItem('token', response.access_token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        
-        console.log('✅ Login exitoso:', response);
-        navigate('/dashboard');
-        
+
+        console.log('✅ Login exitoso:', {
+          username: response.user.username,
+          role: response.user.role,
+          id: response.user.id_user
+        });
+
+        // El token y user ya fueron guardados en localStorage por authService
+        // Verificar que se guardó correctamente
+        const savedToken = localStorage.getItem('token');
+        const savedUser = localStorage.getItem('user');
+
+        if (!savedToken || !savedUser) {
+          throw new Error('Error al guardar la sesión');
+        }
+
+        console.log('✅ Sesión guardada correctamente');
+
+        // Redirigir según el rol del usuario
+        switch (response.user.role) {
+          case 'admin':
+            console.log('🔄 Redirigiendo al panel de administrador...');
+            navigate('/admin/metrics');
+            break;
+          case 'teller':
+            console.log('🔄 Redirigiendo al panel de cajero...');
+            navigate('/teller/dashboard');
+            break;
+          case 'client':
+          default:
+            console.log('🔄 Redirigiendo al dashboard de cliente...');
+            navigate('/dashboard');
+            break;
+        }
+
       } catch (error: any) {
         console.error('❌ Error al iniciar sesión:', error);
-        
-        // Manejar diferentes tipos de errores
+
         if (error.response) {
           const status = error.response.status;
-          const message = error.response.data.message;
-          
+          const message = error.response.data?.message;
+
           if (status === 401) {
-            // Usuario no existe o credenciales incorrectas
-            setError('Usuario no registrado o credenciales incorrectas. Por favor, regístrate primero.');
+            setError('Usuario o contraseña incorrectos. Verifica tus credenciales.');
           } else if (status === 404) {
-            // Usuario no encontrado
-            setError('Usuario no encontrado. Por favor, regístrate primero.');
+            setError('Usuario no encontrado. Por favor, regístrate antes de iniciar sesión.');
+          } else if (status >= 500) {
+            setError('Error del servidor. Por favor, intenta más tarde.');
           } else {
-            setError(message || 'Error al iniciar sesión. Por favor, intenta de nuevo.');
+            setError(message || 'Error desconocido al iniciar sesión.');
           }
+
+        } else if (error.request) {
+          // Error de red o sin respuesta del servidor
+          setError('No se pudo conectar con el servidor. Verifica tu conexión.');
         } else {
-          setError('Error de conexión. Por favor, verifica tu conexión a internet.');
+          // Cualquier otro tipo de error (por ejemplo, error en el frontend)
+          setError('Error inesperado al procesar la solicitud.');
         }
       } finally {
         setLoading(false);
@@ -88,14 +136,37 @@ const Login = () => {
             alignItems: 'center',
             backgroundColor: 'white',
             borderRadius: 2,
+            width: '100%',
           }}
         >
           <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
             Iniciar Sesión
           </Typography>
 
+          {/* Mensaje de éxito */}
+          {success && (
+            <Alert severity="success" sx={{ width: '100%', mb: 2 }}>
+              {success}
+            </Alert>
+          )}
+
+          {/* Mensaje de error */}
           {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            <Alert
+              severity="error"
+              sx={{ width: '100%', mb: 2 }}
+              action={
+                error.includes('regístrate') ? (
+                  <Button
+                    color="inherit"
+                    size="small"
+                    onClick={() => navigate('/register')}
+                  >
+                    Registrarse
+                  </Button>
+                ) : undefined
+              }
+            >
               {error}
             </Alert>
           )}
@@ -115,6 +186,7 @@ const Login = () => {
               helperText={formik.touched.username && formik.errors.username}
               disabled={loading}
             />
+
             <TextField
               fullWidth
               margin="normal"
@@ -129,6 +201,7 @@ const Login = () => {
               helperText={formik.touched.password && formik.errors.password}
               disabled={loading}
             />
+
             <Button
               type="submit"
               fullWidth
@@ -136,8 +209,16 @@ const Login = () => {
               sx={{ mt: 3, mb: 2, backgroundColor: '#1976d2' }}
               disabled={loading}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Ingresar'}
+              {loading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={24} color="inherit" />
+                  <span>Iniciando sesión...</span>
+                </Box>
+              ) : (
+                'Ingresar'
+              )}
             </Button>
+
             <Button
               fullWidth
               variant="text"

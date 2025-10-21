@@ -29,16 +29,28 @@ export const authService = {
    * Registra un nuevo usuario en el sistema
    * Solo maneja los datos de autenticación (username, email, password, role)
    */
-  register: async (data: RegisterData) => {
-    try {
-      const response = await api.post('/auth/register', data);
-      console.log('✅ Registro exitoso en auth service:', response.data);
-      return response;
-    } catch (error: any) {
-      console.error('❌ Error en registro:', error.response?.data || error.message);
-      throw error;
+  // auth.service.ts
+register: async (data: RegisterData) => {
+  try {
+    const response = await api.post('/auth/register', data);
+    console.log('✅ Registro exitoso en auth service:', response.data);
+
+    // ⚠️ Guarda el token y el usuario si vienen en la respuesta
+    if (response.data.access_token) {
+      localStorage.setItem('token', response.data.access_token);
     }
-  },
+    if (response.data.user) {
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+
+    return response;
+  } catch (error: any) {
+    console.error('❌ Error en registro:', error.response?.data || error.message);
+    throw error;
+  }
+},
+
+
 
   /**
    * Inicia sesión de un usuario
