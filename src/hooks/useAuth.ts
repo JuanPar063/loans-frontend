@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import jwtDecode from 'jwt-decode';  // npm install jwt-decode @types/jwt-decode
+import { jwtDecode } from 'jwt-decode';
 
 export const useAuth = () => {
   const [user, setUser ] = useState<{ id: string; role: string } | null>(null);

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Table, TableBody, TableRow, TableCell } from '@mui/material';
+import { Table, TableBody, TableRow, TableCell, TextField } from '@mui/material';
 import { adminService } from '../../services/admin.service';
 
 export const Metrics: React.FC = () => {
   const [metrics, setMetrics] = useState<any>(null);
-  const [userId, setUser Id] = useState('');
+  const [userId, setUserId] = useState('');
 
   useEffect(() => {
     if (userId) {
@@ -14,7 +14,7 @@ export const Metrics: React.FC = () => {
 
   return (
     <div>
-      <TextField label="User  ID" value={userId} onChange={(e) => setUser Id(e.target.value)} />
+      <TextField label="User  ID" value={userId} onChange={(e) => setUserId(e.target.value)} />
       {metrics && (
         <Table>
           <TableBody>

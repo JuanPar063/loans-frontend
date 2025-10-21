@@ -1,11 +1,14 @@
 import api from './api.client';
 
 export const authService = {
-  register: (data: { name: string; email: string; password: string; role: string }) =>
-    api.post('/users/register', data),
-  login: (data: { email: string; password: string }) =>
+  // Registro: solo username, email, password y role (para user-login)
+  register: (data: { username: string; email: string; password: string; role: string }) =>
+    api.post('/auth/register', data),
+
+  // Login: username y password (para user-login)
+  login: (data: { username: string; password: string }) =>
     api.post('/auth/login', data).then((res) => {
-      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('token', res.data.access_token);
       return res.data;
     }),
 };

@@ -8,13 +8,13 @@ interface LoginFormProps {
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
     try {
-      await authService.login({ email, password });
+      await authService.login({ username, password });
       onSuccess();
       navigate('/dashboard');
     } catch (error) {
@@ -24,7 +24,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
   return (
     <div>
-      <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
       <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
       <Button onClick={handleSubmit}>Login</Button>
     </div>

@@ -4,7 +4,7 @@ import { authService } from '../../services/auth.service';
 import { useNavigate } from 'react-router-dom';
 
 export const Register: React.FC = () => {
-  const [data, setData] = useState({ name: '', email: '', password: '', role: 'client' });
+  const [data, setData] = useState({ username: '', email: '', password: '', role: 'client' });
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
@@ -14,7 +14,7 @@ export const Register: React.FC = () => {
 
   return (
     <div>
-      <TextField label="Name" value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} />
+      <TextField label="Name" value={data.username} onChange={(e) => setData({ ...data, username: e.target.value })} />
       {/* Otros fields */}
       <Button onClick={handleSubmit}>Register</Button>
     </div>
