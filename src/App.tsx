@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/common/protectedRoute';
 import Register from './pages/Auth/register';
 import Login from './pages/Auth/login';
 import Dashboard from './pages/Dashboard/dashboard';
+import AdminDashboard from './pages/Dashboard/AdminDashboard';
 import { Metrics } from './pages/Admin/metrics';
 import { useAuth } from './hooks/useAuth';
 import { Box, CircularProgress, Typography } from '@mui/material';
@@ -66,12 +67,32 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-        {/* Rutas Protegidas - Dashboard */}
+        {/* ✅ Rutas Protegidas - Dashboard de CLIENTE */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['client', 'admin', 'teller']}>
+            <ProtectedRoute requiredRole="client">
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ Rutas Protegidas - Dashboard de ADMINISTRADOR */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Rutas Protegidas - Admin - Métricas */}
+        <Route
+          path="/admin/metrics"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Metrics />
             </ProtectedRoute>
           }
         />
@@ -96,16 +117,6 @@ function App() {
         />
         */}
 
-        {/* Rutas Protegidas - Admin */}
-        <Route
-          path="/admin/metrics"
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <Metrics />
-            </ProtectedRoute>
-          }
-        />
-
         {/* Rutas Protegidas - Teller */}
         {/*
         <Route
@@ -118,12 +129,18 @@ function App() {
         />
         */}
 
-        {/* Ruta raíz - Redirige según autenticación */}
+        {/* ✅ Ruta raíz - Redirige según autenticación y rol */}
         <Route
           path="/"
           element={
-            isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
+            isAuthenticated && user ? (
+              user.role === 'admin' ? (
+                <Navigate to="/admin/dashboard" replace />
+              ) : user.role === 'teller' ? (
+                <Navigate to="/teller/dashboard" replace />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
             ) : (
               <Navigate to="/login" replace />
             )
@@ -151,7 +168,7 @@ function App() {
                 La página que buscas no existe
               </Typography>
               <Box sx={{ mt: 2 }}>
-                <a href="/dashboard" style={{ textDecoration: 'none' }}>
+                <a href="/" style={{ textDecoration: 'none' }}>
                   Volver al inicio
                 </a>
               </Box>

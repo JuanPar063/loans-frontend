@@ -70,11 +70,11 @@ const Login = () => {
 
         console.log('✅ Sesión guardada correctamente');
 
-        // Redirigir según el rol del usuario
+        // ✅ MEJORA: Redirigir según el rol del usuario
         switch (response.user.role) {
           case 'admin':
             console.log('🔄 Redirigiendo al panel de administrador...');
-            navigate('/admin/metrics');
+            navigate('/admin/dashboard');
             break;
           case 'teller':
             console.log('🔄 Redirigiendo al panel de cajero...');
@@ -90,27 +90,51 @@ const Login = () => {
       } catch (error: any) {
         console.error('❌ Error al iniciar sesión:', error);
 
+        // ✅ MEJORA: Mensajes de error más específicos
+        let errorMessage = 'Error al iniciar sesión. Por favor, intenta de nuevo.';
+
         if (error.response) {
           const status = error.response.status;
-          const message = error.response.data?.message;
+          const data = error.response.data;
 
-          if (status === 401) {
-            setError('Usuario o contraseña incorrectos. Verifica tus credenciales.');
-          } else if (status === 404) {
-            setError('Usuario no encontrado. Por favor, regístrate antes de iniciar sesión.');
-          } else if (status >= 500) {
-            setError('Error del servidor. Por favor, intenta más tarde.');
+          // Manejar mensaje del backend
+          if (data?.message) {
+            errorMessage = data.message;
+          } else if (Array.isArray(data?.message)) {
+            errorMessage = data.message.join(', ');
           } else {
-            setError(message || 'Error desconocido al iniciar sesión.');
+            // Mensajes por código de estado
+            switch (status) {
+              case 401:
+                errorMessage = 'Usuario o contraseña incorrectos. Verifica tus credenciales.';
+                break;
+              case 404:
+                errorMessage = 'Usuario no encontrado. Por favor, regístrate antes de iniciar sesión.';
+                break;
+              case 403:
+                errorMessage = 'Acceso denegado. Tu cuenta puede estar suspendida.';
+                break;
+              case 429:
+                errorMessage = 'Demasiados intentos fallidos. Espera unos minutos antes de intentar de nuevo.';
+                break;
+              case 500:
+              case 502:
+              case 503:
+                errorMessage = 'Error del servidor. Por favor, intenta más tarde.';
+                break;
+              default:
+                errorMessage = `Error ${status}: ${data?.message || 'Error desconocido'}`;
+            }
           }
-
         } else if (error.request) {
           // Error de red o sin respuesta del servidor
-          setError('No se pudo conectar con el servidor. Verifica tu conexión.');
-        } else {
-          // Cualquier otro tipo de error (por ejemplo, error en el frontend)
-          setError('Error inesperado al procesar la solicitud.');
+          errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+        } else if (error.message) {
+          // Error personalizado
+          errorMessage = error.message;
         }
+
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -150,7 +174,7 @@ const Login = () => {
             </Alert>
           )}
 
-          {/* Mensaje de error */}
+          {/* Mensaje de error mejorado */}
           {error && (
             <Alert
               severity="error"

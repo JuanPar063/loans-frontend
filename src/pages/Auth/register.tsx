@@ -11,6 +11,7 @@ import {
   Stepper,
   Step,
   StepLabel,
+  MenuItem,
 } from '@mui/material';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -24,7 +25,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
 
-  const steps = ['Creando usuario', 'Creando perfil', 'Finalizando'];
+  const steps = ['Validando datos', 'Creando usuario', 'Creando perfil', 'Finalizando'];
 
   const formik = useFormik({
     initialValues: {
@@ -33,7 +34,7 @@ const Register = () => {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'client',
+      role: 'client', // ✅ Por defecto cliente
       
       // Datos del perfil (user-service)
       firstName: '',
@@ -66,6 +67,10 @@ const Register = () => {
       confirmPassword: Yup.string()
         .oneOf([Yup.ref('password')], 'Las contraseñas deben coincidir')
         .required('Confirma tu contraseña'),
+      
+      role: Yup.string()
+        .oneOf(['client', 'admin'], 'Rol inválido')
+        .required('Selecciona un rol'),
       
       // Validación de campos de perfil
       firstName: Yup.string()
@@ -112,7 +117,7 @@ const Register = () => {
           username: values.username,
           email: values.email,
           password: values.password,
-          role: values.role,
+          role: values.role, // ✅ Incluir el rol seleccionado
         });
 
         console.log('✅ Usuario creado:', userResponse.data.user);
@@ -146,7 +151,7 @@ const Register = () => {
           console.log('✅ Registro completo, redirigiendo a login...');
           navigate('/login', {
             state: {
-              message: 'Registro exitoso. Por favor, inicia sesión.',
+              message: '¡Registro exitoso! Inicia sesión para continuar.',
               username: values.username,
             },
           });
@@ -155,25 +160,47 @@ const Register = () => {
       } catch (error: any) {
         console.error('❌ Error en el registro:', error);
         
-        // Manejo de errores detallado
-        if (error.message) {
-          setError(error.message);
-        } else if (error.response?.data?.message) {
-          setError(error.response.data.message);
-        } else {
-          setError('Error al registrar usuario. Por favor, intenta de nuevo.');
+        // ✅ MEJORA: Mensajes de error más específicos
+        let errorMessage = 'Error al registrar usuario. Por favor, intenta de nuevo.';
+        
+        if (error.response) {
+          const status = error.response.status;
+          const data = error.response.data;
+          
+          // Errores del backend
+          if (data?.message) {
+            errorMessage = data.message;
+          } else if (Array.isArray(data?.message)) {
+            // Errores de validación múltiples
+            errorMessage = data.message.join(', ');
+          } else {
+            // Errores por código de estado
+            switch (status) {
+              case 409:
+                errorMessage = 'El usuario o email ya están registrados. Intenta con otros datos.';
+                break;
+              case 400:
+                errorMessage = 'Datos inválidos. Verifica que todos los campos estén correctos.';
+                break;
+              case 500:
+                errorMessage = 'Error del servidor. Por favor, intenta más tarde.';
+                break;
+              default:
+                errorMessage = `Error ${status}: ${data?.message || 'Error desconocido'}`;
+            }
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
         }
         
-        // Si falló después de crear el usuario pero antes de crear el perfil
-        // Idealmente deberías tener un endpoint para eliminar el usuario
-        // o implementar una transacción distribuida
-        if (activeStep === 1) {
-          setError(
-            'Usuario creado pero error al crear perfil. ' +
-            'Por favor, contacta al administrador o intenta con otro correo/usuario.'
-          );
+        // Mensaje específico según el paso fallido
+        if (activeStep === 0) {
+          errorMessage = `Error al crear usuario: ${errorMessage}`;
+        } else if (activeStep === 1) {
+          errorMessage = `Usuario creado pero error al crear perfil: ${errorMessage}. Contacta al administrador o intenta con otro email/usuario.`;
         }
         
+        setError(errorMessage);
         setActiveStep(0);
       } finally {
         setLoading(false);
@@ -202,7 +229,7 @@ const Register = () => {
             </Box>
           )}
 
-          {/* Mensaje de error */}
+          {/* Mensaje de error mejorado */}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -269,6 +296,33 @@ const Register = () => {
                   disabled={loading}
                 />
               </Box>
+
+              {/* ✅ NUEVO: Selector de rol - VERSION MEJORADA */}
+              <TextField
+                fullWidth
+                name="role"
+                label="Tipo de Usuario *"
+                select
+                value={formik.values.role}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={formik.touched.role && Boolean(formik.errors.role)}
+                helperText={formik.touched.role && formik.errors.role}
+                disabled={loading}
+              >
+                <MenuItem value="client">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span>👤</span>
+                    <span>Cliente</span>
+                  </Box>
+                </MenuItem>
+                <MenuItem value="admin">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span>⚙️</span>
+                    <span>Administrador</span>
+                  </Box>
+                </MenuItem>
+              </TextField>
 
               {/* Sección: Datos personales */}
               <Typography variant="h6" sx={{ mt: 2 }}>

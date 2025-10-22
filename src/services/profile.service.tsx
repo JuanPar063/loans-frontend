@@ -1,4 +1,4 @@
-import api from './api.client';
+import { profileClient } from './api.client'; // ✅ Usar profileClient en lugar de api
 
 export interface ProfileData {
   id_user: string;
@@ -30,16 +30,22 @@ class ProfileService {
         throw new Error('No hay token de autenticación');
       }
 
-      const response = await api.post('/profiles', profileData, {
+      // ✅ CORRECCIÓN: Usar profileClient que apunta al puerto 3000
+      const response = await profileClient.post('/profiles', profileData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       console.log('✅ Perfil creado exitosamente:', response.data);
-      return response.data;
+      return response.data.data || response.data; // Manejar ambos formatos de respuesta
     } catch (error: any) {
       console.error('❌ Error al crear perfil:', error.response?.data || error.message);
+      
+      // Lanzar error más descriptivo
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
       throw error;
     }
   }
@@ -54,14 +60,14 @@ class ProfileService {
         throw new Error('No hay token de autenticación');
       }
 
-      const response = await api.get(`/profiles/${userId}`, {
+      const response = await profileClient.get(`/profiles/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       console.log('✅ Perfil obtenido:', response.data);
-      return response.data;
+      return response.data.data || response.data;
     } catch (error: any) {
       console.error('❌ Error al obtener perfil:', error.response?.data || error.message);
       throw error;
@@ -96,14 +102,14 @@ class ProfileService {
         throw new Error('No hay token de autenticación');
       }
 
-      const response = await api.patch(`/profiles/${userId}`, profileData, {
+      const response = await profileClient.patch(`/profiles/${userId}`, profileData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       console.log('✅ Perfil actualizado:', response.data);
-      return response.data;
+      return response.data.data || response.data;
     } catch (error: any) {
       console.error('❌ Error al actualizar perfil:', error.response?.data || error.message);
       throw error;
@@ -120,7 +126,7 @@ class ProfileService {
         throw new Error('No hay token de autenticación');
       }
 
-      await api.delete(`/profiles/${userId}`, {
+      await profileClient.delete(`/profiles/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -130,6 +136,25 @@ class ProfileService {
     } catch (error: any) {
       console.error('❌ Error al eliminar perfil:', error.response?.data || error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Valida si un teléfono ya está registrado
+   * Retorna true si está disponible, false si ya existe
+   */
+  async validatePhone(phone: string): Promise<{ available: boolean; message: string }> {
+    try {
+      const response = await profileClient.get(`/profiles/validate/phone/${phone}`);
+      console.log('✅ Validación de teléfono:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Error al validar teléfono:', error);
+      // Si hay error, asumimos que no está disponible para ser precavidos
+      return {
+        available: false,
+        message: 'Error al validar el teléfono'
+      };
     }
   }
 
