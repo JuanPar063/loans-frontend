@@ -46,19 +46,30 @@ const createApiInstance = (baseURL: string): AxiosInstance => {
       if (error.response) {
         const status = error.response.status;
         const data = error.response.data as any;
+        const url = error.config?.url || '';
         
         if (process.env.NODE_ENV === 'development') {
           console.error(`❌ ${status} ${error.config?.method?.toUpperCase()} ${error.config?.baseURL}${error.config?.url}`, data);
         }
         
-        // Token expirado o inválido
+        // ✅ CORRECCIÓN: Solo redirigir en 401 si NO es la ruta de login/register
         if (status === 401) {
-          console.warn('⚠️ Token expirado o inválido. Redirigiendo a login...');
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          // Rutas públicas que NO deben redirigir
+          const publicRoutes = ['/auth/login', '/auth/register'];
+          const isPublicRoute = publicRoutes.some(route => url.includes(route));
           
-          if (!window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
+          if (!isPublicRoute) {
+            // Token expirado en ruta protegida
+            console.warn('⚠️ Token expirado o inválido. Redirigiendo a login...');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            
+            if (!window.location.pathname.includes('/login')) {
+              window.location.href = '/login';
+            }
+          } else {
+            // Es login/register, dejar que el componente maneje el error
+            console.warn('⚠️ Credenciales inválidas (login/register)');
           }
         }
         
@@ -89,8 +100,7 @@ const createApiInstance = (baseURL: string): AxiosInstance => {
 export const authApi = createApiInstance(AUTH_SERVICE_URL);
 export const profileApi = createApiInstance(PROFILE_SERVICE_URL);
 
-// Para compatibilidad con código existente, exportar una instancia por defecto
-// (puedes cambiar esto gradualmente en tu código)
+// Para compatibilidad con código existente
 const api = authApi;
 export default api;
 
