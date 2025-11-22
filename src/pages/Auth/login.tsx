@@ -70,7 +70,7 @@ const Login = () => {
 
         console.log('✅ Sesión guardada correctamente');
 
-        // ✅ MEJORA: Redirigir según el rol del usuario
+        // ✅ Redirigir según el rol del usuario
         switch (response.user.role) {
           case 'admin':
             console.log('🔄 Redirigiendo al panel de administrador...');
@@ -90,29 +90,31 @@ const Login = () => {
       } catch (error: any) {
         console.error('❌ Error al iniciar sesión:', error);
 
-        // ✅ MEJORA: Mensajes de error más específicos
+        // ✅ MEJORA: Mensajes de error más específicos y personalizados
         let errorMessage = 'Error al iniciar sesión. Por favor, intenta de nuevo.';
 
         if (error.response) {
           const status = error.response.status;
           const data = error.response.data;
 
-          // Manejar mensaje del backend
+          // ✅ MEJORA: Priorizar el mensaje del backend
           if (data?.message) {
-            errorMessage = data.message;
-          } else if (Array.isArray(data?.message)) {
-            errorMessage = data.message.join(', ');
+            if (Array.isArray(data.message)) {
+              errorMessage = data.message.join(', ');
+            } else {
+              errorMessage = data.message;
+            }
           } else {
             // Mensajes por código de estado
             switch (status) {
-              case 401:
-                errorMessage = 'Usuario o contraseña incorrectos. Verifica tus credenciales.';
-                break;
               case 404:
-                errorMessage = 'Usuario no encontrado. Por favor, regístrate antes de iniciar sesión.';
+                errorMessage = `El usuario "${values.username}" no existe. Por favor, regístrate primero.`;
+                break;
+              case 401:
+                errorMessage = 'Contraseña incorrecta. Verifica tus credenciales e intenta de nuevo.';
                 break;
               case 403:
-                errorMessage = 'Acceso denegado. Tu cuenta puede estar suspendida.';
+                errorMessage = 'Acceso denegado. Tu cuenta puede estar suspendida. Contacta al administrador.';
                 break;
               case 429:
                 errorMessage = 'Demasiados intentos fallidos. Espera unos minutos antes de intentar de nuevo.';
@@ -128,13 +130,17 @@ const Login = () => {
           }
         } else if (error.request) {
           // Error de red o sin respuesta del servidor
-          errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+          errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión a internet y que el servidor esté activo.';
         } else if (error.message) {
           // Error personalizado
           errorMessage = error.message;
         }
 
         setError(errorMessage);
+
+        // Limpiar la contraseña si hubo error
+        formik.setFieldValue('password', '');
+
       } finally {
         setLoading(false);
       }
@@ -174,13 +180,13 @@ const Login = () => {
             </Alert>
           )}
 
-          {/* Mensaje de error mejorado */}
+          {/* Mensaje de error mejorado con botón condicional */}
           {error && (
             <Alert
               severity="error"
               sx={{ width: '100%', mb: 2 }}
               action={
-                error.includes('regístrate') ? (
+                error.includes('no existe') || error.includes('regístrate') ? (
                   <Button
                     color="inherit"
                     size="small"
