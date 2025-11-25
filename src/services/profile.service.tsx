@@ -1,4 +1,6 @@
-import { profileClient } from './api.client'; // ✅ Usar profileClient en lugar de api
+// src/services/profile.service.tsx
+
+import { profileClient } from './api.client';
 
 export interface ProfileData {
   id_user: string;
@@ -18,8 +20,49 @@ export interface ProfileResponse extends ProfileData {
 
 class ProfileService {
   /**
+   * ✅ NUEVO: Valida si un número de documento está disponible
+   */
+  async validateDocumentNumber(documentNumber: string): Promise<{ 
+    available: boolean; 
+    message: string 
+  }> {
+    try {
+      const response = await profileClient.get(
+        `/profiles/validate/document/${documentNumber}`
+      );
+      console.log('✅ Validación de documento:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Error al validar documento:', error);
+      return {
+        available: false,
+        message: 'Error al validar el documento'
+      };
+    }
+  }
+
+  /**
+   * Valida si un teléfono está disponible
+   */
+  async validatePhone(phone: string): Promise<{ 
+    available: boolean; 
+    message: string 
+  }> {
+    try {
+      const response = await profileClient.get(`/profiles/validate/phone/${phone}`);
+      console.log('✅ Validación de teléfono:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Error al validar teléfono:', error);
+      return {
+        available: false,
+        message: 'Error al validar el teléfono'
+      };
+    }
+  }
+
+  /**
    * Crea un nuevo perfil de usuario
-   * Debe ser llamado después de crear el usuario en el servicio de autenticación
    */
   async createProfile(profileData: ProfileData): Promise<ProfileResponse> {
     try {
@@ -30,7 +73,6 @@ class ProfileService {
         throw new Error('No hay token de autenticación');
       }
 
-      // ✅ CORRECCIÓN: Usar profileClient que apunta al puerto 3000
       const response = await profileClient.post('/profiles', profileData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -38,11 +80,10 @@ class ProfileService {
       });
 
       console.log('✅ Perfil creado exitosamente:', response.data);
-      return response.data.data || response.data; // Manejar ambos formatos de respuesta
+      return response.data.data || response.data;
     } catch (error: any) {
       console.error('❌ Error al crear perfil:', error.response?.data || error.message);
       
-      // Lanzar error más descriptivo
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
       }
@@ -136,25 +177,6 @@ class ProfileService {
     } catch (error: any) {
       console.error('❌ Error al eliminar perfil:', error.response?.data || error.message);
       throw error;
-    }
-  }
-
-  /**
-   * Valida si un teléfono ya está registrado
-   * Retorna true si está disponible, false si ya existe
-   */
-  async validatePhone(phone: string): Promise<{ available: boolean; message: string }> {
-    try {
-      const response = await profileClient.get(`/profiles/validate/phone/${phone}`);
-      console.log('✅ Validación de teléfono:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error al validar teléfono:', error);
-      // Si hay error, asumimos que no está disponible para ser precavidos
-      return {
-        available: false,
-        message: 'Error al validar el teléfono'
-      };
     }
   }
 

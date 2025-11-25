@@ -1,3 +1,5 @@
+// src/pages/Auth/register.tsx
+
 import React, { useState } from 'react';
 import {
   Container,
@@ -18,6 +20,7 @@ import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
 import { profileService } from '../../services/profile.service';
+import axios from 'axios';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -29,14 +32,11 @@ const Register = () => {
 
   const formik = useFormik({
     initialValues: {
-      // Datos de autenticación (user-login)
       username: '',
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'client', // ✅ Por defecto cliente
-      
-      // Datos del perfil (user-service)
+      role: 'client',
       firstName: '',
       lastName: '',
       documentType: 'CC',
@@ -45,17 +45,16 @@ const Register = () => {
       address: '',
     },
     validationSchema: Yup.object({
-      // Validación de campos de autenticación
       username: Yup.string()
         .min(3, 'El usuario debe tener al menos 3 caracteres')
         .max(50, 'El usuario no puede tener más de 50 caracteres')
         .matches(/^[a-zA-Z0-9_-]+$/, 'Solo letras, números, guiones y guiones bajos')
         .required('Usuario requerido'),
-      
+
       email: Yup.string()
         .email('Email inválido')
         .required('Email requerido'),
-      
+
       password: Yup.string()
         .min(8, 'La contraseña debe tener al menos 8 caracteres')
         .matches(
@@ -63,121 +62,149 @@ const Register = () => {
           'Debe contener mayúscula, minúscula, número y carácter especial'
         )
         .required('Contraseña requerida'),
-      
+
       confirmPassword: Yup.string()
         .oneOf([Yup.ref('password')], 'Las contraseñas deben coincidir')
         .required('Confirma tu contraseña'),
-      
+
       role: Yup.string()
         .oneOf(['client', 'admin'], 'Rol inválido')
         .required('Selecciona un rol'),
-      
-      // Validación de campos de perfil
+
       firstName: Yup.string()
         .min(2, 'Mínimo 2 caracteres')
         .max(100, 'Máximo 100 caracteres')
         .required('Nombre requerido'),
-      
+
       lastName: Yup.string()
         .min(2, 'Mínimo 2 caracteres')
         .max(100, 'Máximo 100 caracteres')
         .required('Apellido requerido'),
-      
+
       documentType: Yup.string()
         .required('Tipo de documento requerido'),
-      
+
       documentNumber: Yup.string()
         .min(5, 'Mínimo 5 caracteres')
         .max(20, 'Máximo 20 caracteres')
         .matches(/^[0-9]+$/, 'Solo números')
         .required('Número de documento requerido'),
-      
+
       phone: Yup.string()
         .min(10, 'Mínimo 10 caracteres')
         .max(20, 'Máximo 20 caracteres')
         .matches(/^[+]?[0-9]+$/, 'Formato de teléfono inválido (+573001234567)')
         .required('Teléfono requerido'),
-      
+
       address: Yup.string()
         .min(10, 'Mínimo 10 caracteres')
         .max(200, 'Máximo 200 caracteres')
         .required('Dirección requerida'),
     }),
-    
+
     onSubmit: async (values) => {
       setLoading(true);
       setError('');
       setActiveStep(0);
 
+      let createdUserId: string | null = null;
+
       try {
-        // PASO 1: Crear usuario en user-login (auth-service)
+        // ✅ PASO 0: VALIDACIONES PREVENTIVAS
+        console.log('🔄 Validando disponibilidad de datos únicos...');
+
+        // Validar documento
+        const docValidation = await profileService.validateDocumentNumber(values.documentNumber);
+        if (!docValidation.available) {
+          throw new Error(`❌ ${docValidation.message}`);
+        }
+
+        // Validar teléfono
+        const phoneValidation = await profileService.validatePhone(values.phone);
+        if (!phoneValidation.available) {
+          throw new Error(`❌ ${phoneValidation.message}`);
+        }
+
+        console.log('✅ Validaciones preventivas completadas');
+
+        // PASO 1: Crear usuario en user-login
         console.log('🔄 Paso 1: Creando usuario en auth-service...');
-        
+        setActiveStep(1);
+
         const userResponse = await authService.register({
           username: values.username,
           email: values.email,
           password: values.password,
-          role: values.role, // ✅ Incluir el rol seleccionado
+          role: values.role,
         });
 
         console.log('✅ Usuario creado:', userResponse.data.user);
-        setActiveStep(1);
 
-        // Verificar que tenemos el ID del usuario
         if (!userResponse.data?.user?.id_user) {
           throw new Error('No se recibió el ID del usuario del servidor');
         }
 
-        const userId = userResponse.data.user.id_user;
+        createdUserId = userResponse.data.user.id_user;
 
-        // PASO 2: Crear perfil en user-service (profile-service)
+        // PASO 2: Crear perfil en user-service
         console.log('🔄 Paso 2: Creando perfil en profile-service...');
-        
-        await profileService.createProfile({
-          id_user: userId,
-          first_name: values.firstName,
-          last_name: values.lastName,
-          document_type: values.documentType,
-          document_number: values.documentNumber,
-          phone: values.phone,
-          address: values.address,
-        });
-
-        console.log('✅ Perfil creado exitosamente');
         setActiveStep(2);
-
-        // PASO 3: Redirigir a login
-        setTimeout(() => {
-          console.log('✅ Registro completo, redirigiendo a login...');
-          navigate('/login', {
-            state: {
-              message: '¡Registro exitoso! Inicia sesión para continuar.',
-              username: values.username,
-            },
+        
+        if (!createdUserId) {
+          throw new Error('No se pudo obtener el ID del usuario. Registro abortado.');
+        }
+        try {
+          await profileService.createProfile({
+            id_user: createdUserId,
+            first_name: values.firstName,
+            last_name: values.lastName,
+            document_type: values.documentType,
+            document_number: values.documentNumber,
+            phone: values.phone,
+            address: values.address,
           });
-        }, 1000);
+
+          console.log('✅ Perfil creado exitosamente');
+          setActiveStep(3);
+
+          // PASO 3: Redirigir a login
+          setTimeout(() => {
+            console.log('✅ Registro completo, redirigiendo a login...');
+            navigate('/login', {
+              state: {
+                message: '¡Registro exitoso! Inicia sesión para continuar.',
+                username: values.username,
+              },
+            });
+          }, 1000);
+
+        } catch (profileError: any) {
+          console.error('❌ Error al crear perfil, ejecutando rollback...', profileError);
+
+          // ✅ ROLLBACK: Eliminar usuario creado
+          await performRollback(createdUserId!, values.username);
+
+          // Lanzar el error original
+          throw profileError;
+        }
 
       } catch (error: any) {
         console.error('❌ Error en el registro:', error);
-        
-        // ✅ MEJORA: Mensajes de error más específicos
+
         let errorMessage = 'Error al registrar usuario. Por favor, intenta de nuevo.';
-        
+
         if (error.response) {
           const status = error.response.status;
           const data = error.response.data;
-          
-          // Errores del backend
+
           if (data?.message) {
-            errorMessage = data.message;
-          } else if (Array.isArray(data?.message)) {
-            // Errores de validación múltiples
-            errorMessage = data.message.join(', ');
+            errorMessage = Array.isArray(data.message)
+              ? data.message.join(', ')
+              : data.message;
           } else {
-            // Errores por código de estado
             switch (status) {
               case 409:
-                errorMessage = 'El usuario o email ya están registrados. Intenta con otros datos.';
+                errorMessage = 'El usuario, email, documento o teléfono ya están registrados. Intenta con otros datos.';
                 break;
               case 400:
                 errorMessage = 'Datos inválidos. Verifica que todos los campos estén correctos.';
@@ -192,14 +219,11 @@ const Register = () => {
         } else if (error.message) {
           errorMessage = error.message;
         }
-        
-        // Mensaje específico según el paso fallido
-        if (activeStep === 0) {
-          errorMessage = `Error al crear usuario: ${errorMessage}`;
-        } else if (activeStep === 1) {
-          errorMessage = `Usuario creado pero error al crear perfil: ${errorMessage}. Contacta al administrador o intenta con otro email/usuario.`;
+
+        if (activeStep === 1 && createdUserId) {
+          errorMessage = `Usuario creado pero error al crear perfil: ${errorMessage}. El usuario fue eliminado automáticamente. Por favor, intenta de nuevo.`;
         }
-        
+
         setError(errorMessage);
         setActiveStep(0);
       } finally {
@@ -207,6 +231,33 @@ const Register = () => {
       }
     },
   });
+
+  /**
+   * ✅ FUNCIÓN DE ROLLBACK: Elimina el usuario creado si falla la creación del perfil
+   */
+  const performRollback = async (userId: string, username: string) => {
+    try {
+      console.log(`🔄 Ejecutando rollback para usuario ${username} (${userId})...`);
+
+      const AUTH_SERVICE_URL = process.env.REACT_APP_AUTH_SERVICE_URL || 'http://localhost:3001';
+      const token = localStorage.getItem('token');
+
+      // Llamar al endpoint de eliminación del usuario
+      await axios.delete(`${AUTH_SERVICE_URL}/auth/users/${userId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      console.log('✅ Rollback completado: Usuario eliminado correctamente');
+
+      // Limpiar localStorage si se guardó algo
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+
+    } catch (rollbackError) {
+      console.error('❌ Error al ejecutar rollback:', rollbackError);
+      console.warn('⚠️ El usuario puede haber quedado creado sin perfil. Contacte al administrador.');
+    }
+  };
 
   return (
     <Container component="main" maxWidth="md">
@@ -216,7 +267,6 @@ const Register = () => {
             Registro de Usuario
           </Typography>
 
-          {/* Stepper de progreso */}
           {loading && (
             <Box sx={{ mb: 3 }}>
               <Stepper activeStep={activeStep}>
@@ -229,7 +279,6 @@ const Register = () => {
             </Box>
           )}
 
-          {/* Mensaje de error mejorado */}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -238,12 +287,12 @@ const Register = () => {
 
           <form onSubmit={formik.handleSubmit}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              
+
               {/* Sección: Datos de cuenta */}
               <Typography variant="h6" sx={{ mt: 2 }}>
                 Datos de cuenta
               </Typography>
-              
+
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
                   fullWidth
@@ -297,7 +346,6 @@ const Register = () => {
                 />
               </Box>
 
-              {/* ✅ NUEVO: Selector de rol - VERSION MEJORADA */}
               <TextField
                 fullWidth
                 name="role"
