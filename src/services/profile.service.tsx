@@ -18,9 +18,17 @@ export interface ProfileResponse extends ProfileData {
   updated_at: string;
 }
 
+// ✅ Nueva interfaz para actualización de perfil
+export interface UpdateProfileData {
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  address?: string;
+}
+
 class ProfileService {
   /**
-   * ✅ NUEVO: Valida si un número de documento está disponible
+   * ✅ Valida si un número de documento está disponible
    */
   async validateDocumentNumber(documentNumber: string): Promise<{ 
     available: boolean; 
@@ -134,16 +142,18 @@ class ProfileService {
   }
 
   /**
-   * Actualiza el perfil de un usuario
+   * ✅ ACTUALIZADO: Actualiza el perfil de un usuario (ahora usa PUT)
    */
-  async updateProfile(userId: string, profileData: Partial<ProfileData>): Promise<ProfileResponse> {
+  async updateProfile(userId: string, profileData: UpdateProfileData): Promise<ProfileResponse> {
     try {
+      console.log('📝 Actualizando perfil con datos:', profileData);
+      
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No hay token de autenticación');
       }
 
-      const response = await profileClient.patch(`/profiles/${userId}`, profileData, {
+      const response = await profileClient.put(`/profiles/${userId}`, profileData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -153,6 +163,10 @@ class ProfileService {
       return response.data.data || response.data;
     } catch (error: any) {
       console.error('❌ Error al actualizar perfil:', error.response?.data || error.message);
+      
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
       throw error;
     }
   }

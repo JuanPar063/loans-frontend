@@ -1,11 +1,11 @@
+// loans-frontend/src/components/Layout/Sidebar.tsx
+
 import React from 'react';
 import {
   Drawer,
   List,
-  ListItem,
   ListItemIcon,
   ListItemText,
-  IconButton,
   Divider,
 } from '@mui/material';
 import {
@@ -13,10 +13,10 @@ import {
   AccountBalance as AccountBalanceIcon,
   Person as PersonIcon,
   ExitToApp as ExitToAppIcon,
+  AttachMoney as AttachMoneyIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ListItemButton } from '@mui/material';
-
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -24,6 +24,7 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/login');
   };
 
@@ -48,19 +49,24 @@ const Sidebar = () => {
           </ListItemIcon>
           <ListItemText primary="Dashboard" />
         </ListItemButton>
-        <ListItemButton onClick={() => navigate('/loans')}>
+
+        {/* ✅ NUEVO: Enlace a Balance */}
+        <ListItemButton onClick={() => navigate('/balance')}>
           <ListItemIcon>
-            <AccountBalanceIcon sx={{ color: 'white' }} />
+            <AttachMoneyIcon sx={{ color: 'white' }} />
           </ListItemIcon>
-          <ListItemText primary="Préstamos" />
+          <ListItemText primary="Mi Balance" />
         </ListItemButton>
+
         <ListItemButton onClick={() => navigate('/profile')}>
           <ListItemIcon>
             <PersonIcon sx={{ color: 'white' }} />
           </ListItemIcon>
           <ListItemText primary="Perfil" />
         </ListItemButton>
+
         <Divider sx={{ backgroundColor: 'rgba(255,255,255,0.12)' }} />
+
         <ListItemButton onClick={handleLogout}>
           <ListItemIcon>
             <ExitToAppIcon sx={{ color: 'white' }} />

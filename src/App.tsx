@@ -1,15 +1,18 @@
+// loans-frontend/src/App.tsx
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './components/common/protectedRoute';
 import Register from './pages/Auth/register';
+import ProfilePage from './pages/Client/profile';
 import Login from './pages/Auth/login';
 import Dashboard from './pages/Dashboard/dashboard';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
+import Balance from './pages/Client/balance';
 import { Metrics } from './pages/Admin/metrics';
 import { useAuth } from './hooks/useAuth';
 import { Box, CircularProgress, Typography } from '@mui/material';
 
-// Página de no autorizado
 const UnauthorizedPage = () => (
   <Box
     sx={{
@@ -38,7 +41,6 @@ const UnauthorizedPage = () => (
 function App() {
   const { user, loading, isAuthenticated } = useAuth();
 
-  // Mostrar loading mientras se verifica la autenticación inicial
   if (loading) {
     return (
       <Box
@@ -77,6 +79,26 @@ function App() {
           }
         />
 
+        {/* ✅ Nueva Ruta: Perfil del usuario */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute requiredRole="client">
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ Ruta: Balance de Préstamos */}
+        <Route
+          path="/balance"
+          element={
+            <ProtectedRoute requiredRole="client">
+              <Balance />
+            </ProtectedRoute>
+          }
+        />
+
         {/* ✅ Rutas Protegidas - Dashboard de ADMINISTRADOR */}
         <Route
           path="/admin/dashboard"
@@ -87,7 +109,7 @@ function App() {
           }
         />
 
-        {/* Rutas Protegidas - Admin - Métricas */}
+        {/* ✅ Rutas Protegidas - Métricas admin */}
         <Route
           path="/admin/metrics"
           element={
@@ -96,38 +118,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Rutas Protegidas - Cliente */}
-        {/* 
-        <Route
-          path="/client/request-loan"
-          element={
-            <ProtectedRoute requiredRole="client">
-              <RequestLoan />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/client/balance"
-          element={
-            <ProtectedRoute requiredRole="client">
-              <Balance />
-            </ProtectedRoute>
-          }
-        />
-        */}
-
-        {/* Rutas Protegidas - Teller */}
-        {/*
-        <Route
-          path="/teller/dashboard"
-          element={
-            <ProtectedRoute requiredRole="teller">
-              <TellerDashboard />
-            </ProtectedRoute>
-          }
-        />
-        */}
 
         {/* ✅ Ruta raíz - Redirige según autenticación y rol */}
         <Route
@@ -147,7 +137,7 @@ function App() {
           }
         />
 
-        {/* Ruta 404 - Cualquier otra ruta */}
+        {/* Ruta 404 */}
         <Route
           path="*"
           element={
@@ -157,8 +147,8 @@ function App() {
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                minHeight: '100vh',
-                backgroundColor: '#f5f5f5',
+              minHeight: '100vh',
+              backgroundColor: '#f5f5f5',
               }}
             >
               <Typography variant="h4" color="error" gutterBottom>
