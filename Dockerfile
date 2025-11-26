@@ -1,3 +1,5 @@
+# loans-frontend/Dockerfile
+
 # ===================================
 # STAGE 1: Dependencies
 # ===================================
@@ -28,8 +30,8 @@ RUN npm run build
 # ===================================
 FROM nginx:alpine
 
-# Copiar configuración nginx personalizada (opcional)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# ✅ CRÍTICO: Copiar configuración nginx personalizada para SPA
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copiar build desde builder
 COPY --from=builder /app/build /usr/share/nginx/html
