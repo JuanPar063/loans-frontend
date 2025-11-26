@@ -1,6 +1,5 @@
-// loans-frontend/src/pages/Dashboard/AdminDashboard.tsx
-
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -40,6 +39,7 @@ type Metrics = {
 };
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -295,47 +295,81 @@ export default function AdminDashboard() {
                 </Typography>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {[
-                    {
-                      title: '📊 Ver Métricas del Sistema',
-                      desc: 'Análisis y estadísticas detalladas',
-                      path: '/admin/metrics',
-                    },
-                    {
-                      title: '💰 Registrar Pago',
-                      desc: 'Registrar pago manual a préstamo',
-                      path: '/admin/register-payment',
-                    },
-                    {
-                      title: '👤 Mi Perfil',
-                      desc: 'Ver y editar información personal',
-                      path: '/admin/profile',
-                    },
-                    {
-                      title: '⚙️ Configuración del Sistema',
-                      desc: 'Ajustes y parámetros generales',
-                      path: '/admin/settings',
-                    },
-                  ].map((link, i) => (
-                    <Card
-                      key={i}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': { boxShadow: 4 },
-                        transition: 'box-shadow 0.3s',
-                      }}
-                      onClick={() => (window.location.href = link.path)}
-                    >
-                      <CardContent>
-                        <Typography variant="subtitle1" color="primary" fontWeight="bold">
-                          {link.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {link.desc}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {/* Opción 1: Ver Métricas del Sistema */}
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      transition: 'all 0.3s',
+                    }}
+                    onClick={() => navigate('/admin/metrics')}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" color="primary" fontWeight="bold">
+                        📊 Ver Métricas del Sistema
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Análisis y estadísticas detalladas
+                      </Typography>
+                    </CardContent>
+                  </Card>
+
+                  {/* Opción 2: Registrar Pago */}
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      transition: 'all 0.3s',
+                    }}
+                    onClick={() => navigate('/admin/register-payment')}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" color="primary" fontWeight="bold">
+                        💰 Registrar Pago
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Registrar pago manual a préstamo
+                      </Typography>
+                    </CardContent>
+                  </Card>
+
+                  {/* Opción 3: Mi Perfil */}
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      transition: 'all 0.3s',
+                    }}
+                    onClick={() => navigate('/admin/profile')}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" color="primary" fontWeight="bold">
+                        👤 Mi Perfil
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Ver y editar información personal
+                      </Typography>
+                    </CardContent>
+                  </Card>
+
+                  {/* Opción 4: Configuración (pendiente) */}
+                  <Card
+                    sx={{
+                      cursor: 'not-allowed',
+                      opacity: 0.5,
+                      '&:hover': { boxShadow: 0 },
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" color="textDisabled" fontWeight="bold">
+                        ⚙️ Configuración del Sistema
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Próximamente disponible
+                      </Typography>
+                    </CardContent>
+                  </Card>
                 </Box>
               </CardContent>
             </Card>
@@ -351,10 +385,18 @@ export default function AdminDashboard() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell><strong>Usuario</strong></TableCell>
-                    <TableCell><strong>Acción</strong></TableCell>
-                    <TableCell><strong>Estado</strong></TableCell>
-                    <TableCell><strong>Fecha</strong></TableCell>
+                    <TableCell>
+                      <strong>Usuario</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Acción</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Estado</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Fecha</strong>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
