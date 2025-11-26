@@ -9,7 +9,7 @@ import Login from './pages/Auth/login';
 import Dashboard from './pages/Dashboard/dashboard';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
 import Balance from './pages/Client/balance';
-import { Metrics } from './pages/Admin/metrics';
+import Metrics from './pages/Admin/metrics'; 
 import RegisterPayment from './pages/Admin/RegisterPayment';
 import AdminProfile from './pages/Admin/AdminProfile';
 import { useAuth } from './hooks/useAuth';

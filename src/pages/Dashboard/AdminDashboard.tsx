@@ -1,6 +1,5 @@
-// loans-frontend/src/pages/Dashboard/AdminDashboard.tsx
-
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -30,21 +29,43 @@ import {
 import AdminSidebar from '../../components/Layout/AdminSidebar';
 import { useAuth } from '../../hooks/useAuth';
 import { profileService, ProfileResponse } from '../../services/profile.service';
+import { adminService } from '../../services/admin.service';
+
+type Metrics = {
+  totalUsers: number;
+  totalLoans: number;
+  totalAmount: number;
+  pendingApprovals: number;
+};
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Estadísticas simuladas
-  const [stats] = useState({
-    totalUsers: 150,
-    totalLoans: 45,
-    totalAmount: 1250000,
-    pendingApprovals: 8,
-  });
+  // Estadísticas (traídas desde backend)
+  const [stats, setStats] = useState<Metrics | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
+
+  const loadStats = async () => {
+    if (!user) return;
+    try {
+      setStatsLoading(true);
+      setStatsError('');
+      const res = await adminService.getMetrics(user.id);
+      // asumir que la API devuelve el objeto directamente en res.data
+      setStats(res.data);
+    } catch (err: any) {
+      console.error('Error al cargar métricas:', err);
+      setStatsError('No se pudieron cargar las métricas del sistema');
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const loadProfile = async () => {
     if (!user) return;
@@ -63,6 +84,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadProfile();
+    loadStats();
   }, [user]);
 
   return (
@@ -131,7 +153,7 @@ export default function AdminDashboard() {
                 icon: <People />,
                 color: '#3f51b5',
                 label: 'Total Usuarios',
-                value: stats.totalUsers,
+                value: stats ? stats.totalUsers : (statsLoading ? <CircularProgress size={20} /> : '—'),
                 chip: '+12% este mes',
                 chipColor: 'success',
               },
@@ -139,7 +161,7 @@ export default function AdminDashboard() {
                 icon: <AttachMoney />,
                 color: '#f50057',
                 label: 'Total Préstamos',
-                value: stats.totalLoans,
+                value: stats ? stats.totalLoans : (statsLoading ? <CircularProgress size={20} /> : '—'),
                 chip: '+5 esta semana',
                 chipColor: 'info',
               },
@@ -147,7 +169,7 @@ export default function AdminDashboard() {
                 icon: <TrendingUp />,
                 color: '#4caf50',
                 label: 'Monto Total',
-                value: `$${stats.totalAmount.toLocaleString()}`,
+                value: stats ? `$${stats.totalAmount.toLocaleString()}` : (statsLoading ? <CircularProgress size={20} /> : '—'),
                 chip: 'Activo',
                 chipColor: 'success',
               },
@@ -155,7 +177,7 @@ export default function AdminDashboard() {
                 icon: <Settings />,
                 color: '#ff9800',
                 label: 'Pendientes',
-                value: stats.pendingApprovals,
+                value: stats ? stats.pendingApprovals : (statsLoading ? <CircularProgress size={20} /> : '—'),
                 chip: 'Requieren atención',
                 chipColor: 'warning',
               },
@@ -273,47 +295,81 @@ export default function AdminDashboard() {
                 </Typography>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {[
-                    {
-                      title: '📊 Ver Métricas del Sistema',
-                      desc: 'Análisis y estadísticas detalladas',
-                      path: '/admin/metrics',
-                    },
-                    {
-                      title: '💰 Registrar Pago',
-                      desc: 'Registrar pago manual a préstamo',
-                      path: '/admin/register-payment',
-                    },
-                    {
-                      title: '👤 Mi Perfil',
-                      desc: 'Ver y editar información personal',
-                      path: '/admin/profile',
-                    },
-                    {
-                      title: '⚙️ Configuración del Sistema',
-                      desc: 'Ajustes y parámetros generales',
-                      path: '/admin/settings',
-                    },
-                  ].map((link, i) => (
-                    <Card
-                      key={i}
-                      sx={{
-                        cursor: 'pointer',
-                        '&:hover': { boxShadow: 4 },
-                        transition: 'box-shadow 0.3s',
-                      }}
-                      onClick={() => (window.location.href = link.path)}
-                    >
-                      <CardContent>
-                        <Typography variant="subtitle1" color="primary" fontWeight="bold">
-                          {link.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {link.desc}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {/* Opción 1: Ver Métricas del Sistema */}
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      transition: 'all 0.3s',
+                    }}
+                    onClick={() => navigate('/admin/metrics')}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" color="primary" fontWeight="bold">
+                        📊 Ver Métricas del Sistema
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Análisis y estadísticas detalladas
+                      </Typography>
+                    </CardContent>
+                  </Card>
+
+                  {/* Opción 2: Registrar Pago */}
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      transition: 'all 0.3s',
+                    }}
+                    onClick={() => navigate('/admin/register-payment')}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" color="primary" fontWeight="bold">
+                        💰 Registrar Pago
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Registrar pago manual a préstamo
+                      </Typography>
+                    </CardContent>
+                  </Card>
+
+                  {/* Opción 3: Mi Perfil */}
+                  <Card
+                    sx={{
+                      cursor: 'pointer',
+                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      transition: 'all 0.3s',
+                    }}
+                    onClick={() => navigate('/admin/profile')}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" color="primary" fontWeight="bold">
+                        👤 Mi Perfil
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Ver y editar información personal
+                      </Typography>
+                    </CardContent>
+                  </Card>
+
+                  {/* Opción 4: Configuración (pendiente) */}
+                  <Card
+                    sx={{
+                      cursor: 'not-allowed',
+                      opacity: 0.5,
+                      '&:hover': { boxShadow: 0 },
+                      transition: 'all 0.3s',
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" color="textDisabled" fontWeight="bold">
+                        ⚙️ Configuración del Sistema
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Próximamente disponible
+                      </Typography>
+                    </CardContent>
+                  </Card>
                 </Box>
               </CardContent>
             </Card>
@@ -329,10 +385,18 @@ export default function AdminDashboard() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell><strong>Usuario</strong></TableCell>
-                    <TableCell><strong>Acción</strong></TableCell>
-                    <TableCell><strong>Estado</strong></TableCell>
-                    <TableCell><strong>Fecha</strong></TableCell>
+                    <TableCell>
+                      <strong>Usuario</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Acción</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Estado</strong>
+                    </TableCell>
+                    <TableCell>
+                      <strong>Fecha</strong>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>

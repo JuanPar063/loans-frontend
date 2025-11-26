@@ -11,17 +11,33 @@ import {
   CircularProgress,
   Alert,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  MenuItem,
+  Snackbar,
 } from '@mui/material';
 import { Email, Badge, CalendarToday } from '@mui/icons-material';
 import Sidebar from '../../components/Layout/Sidebar';
 import { useAuth } from '../../hooks/useAuth';
 import { profileService, ProfileResponse } from '../../services/profile.service';
+import { loanService } from '../../services/loan.service';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+
+  // Estados para el formulario de solicitud de préstamo
+  const [openLoanDialog, setOpenLoanDialog] = useState(false);
+  const [loanAmount, setLoanAmount] = useState<string>('');
+  const [loanTerm, setLoanTerm] = useState<string>('12');
+  const [submitting, setSubmitting] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity?: 'success' | 'error' | 'info' }>({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -57,6 +73,41 @@ export default function Dashboard() {
     }
   };
 
+  const openLoanForm = () => setOpenLoanDialog(true);
+  const closeLoanForm = () => {
+    setOpenLoanDialog(false);
+    setLoanAmount('');
+    setLoanTerm('12');
+  };
+
+  const handleSubmitLoan = async () => {
+    const amount = parseFloat(loanAmount);
+    const term = parseInt(loanTerm, 10);
+    if (isNaN(amount) || amount <= 0) {
+      setSnackbar({ open: true, message: 'Ingrese un monto válido.', severity: 'error' });
+      return;
+    }
+    if (isNaN(term) || term <= 0) {
+      setSnackbar({ open: true, message: 'Seleccione un plazo válido.', severity: 'error' });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await loanService.requestLoan({
+        userId: user?.id || '',
+        amount,
+        typeId: 'monthly_interest',
+      });
+      setSnackbar({ open: true, message: 'Solicitud enviada correctamente.', severity: 'success' });
+      closeLoanForm();
+    } catch (e: any) {
+      setSnackbar({ open: true, message: 'Error al enviar la solicitud.', severity: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <Box sx={{ display: 'flex' }}>
       <Sidebar />
@@ -87,6 +138,47 @@ export default function Dashboard() {
               Panel de control principal
             </Typography>
           </Paper>
+
+          {/* Dialogo de Solicitud de Préstamo */}
+          <Dialog open={openLoanDialog} onClose={closeLoanForm} fullWidth maxWidth="sm">
+            <DialogTitle>Solicitar Préstamo</DialogTitle>
+            <DialogContent>
+              <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="Monto (USD)"
+                  type="number"
+                  value={loanAmount}
+                  onChange={(e) => setLoanAmount(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Plazo (meses)"
+                  select
+                  value={loanTerm}
+                  onChange={(e) => setLoanTerm(e.target.value)}
+                  fullWidth
+                >
+                  <MenuItem value="3">3 meses</MenuItem>
+                  <MenuItem value="6">6 meses</MenuItem>
+                  <MenuItem value="12">12 meses</MenuItem>
+                  <MenuItem value="24">24 meses</MenuItem>
+                </TextField>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeLoanForm} disabled={submitting}>Cancelar</Button>
+              <Button onClick={handleSubmitLoan} variant="contained" disabled={submitting}>
+                {submitting ? 'Enviando...' : 'Solicitar'}
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+            message={snackbar.message}
+          />
 
           {/* Sección de tarjetas principales */}
           <Stack
@@ -236,6 +328,7 @@ export default function Dashboard() {
                       '&:hover': { boxShadow: 4 },
                       transition: 'box-shadow 0.3s',
                     }}
+                    onClick={openLoanForm}
                   >
                     <CardContent sx={{ textAlign: 'center' }}>
                       <Typography variant="h6" color="primary">
