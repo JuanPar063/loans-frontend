@@ -1,3 +1,5 @@
+// loans-frontend/src/pages/Dashboard/AdminDashboard.tsx
+
 import React, { useEffect, useState } from 'react';
 import {
   Container,
@@ -25,7 +27,7 @@ import {
   Settings,
   Refresh,
 } from '@mui/icons-material';
-import Sidebar from '../../components/Layout/Sidebar';
+import AdminSidebar from '../../components/Layout/AdminSidebar';
 import { useAuth } from '../../hooks/useAuth';
 import { profileService, ProfileResponse } from '../../services/profile.service';
 
@@ -65,7 +67,7 @@ export default function AdminDashboard() {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <Sidebar />
+      <AdminSidebar />
       <Box
         component="main"
         sx={{
@@ -278,14 +280,14 @@ export default function AdminDashboard() {
                       path: '/admin/metrics',
                     },
                     {
-                      title: '👥 Gestionar Usuarios',
-                      desc: 'Ver, editar y administrar usuarios',
-                      path: '/admin/users',
+                      title: '💰 Registrar Pago',
+                      desc: 'Registrar pago manual a préstamo',
+                      path: '/admin/register-payment',
                     },
                     {
-                      title: '💰 Préstamos Pendientes',
-                      desc: 'Aprobar o rechazar solicitudes',
-                      path: '/admin/loans',
+                      title: '👤 Mi Perfil',
+                      desc: 'Ver y editar información personal',
+                      path: '/admin/profile',
                     },
                     {
                       title: '⚙️ Configuración del Sistema',

@@ -10,6 +10,8 @@ import Dashboard from './pages/Dashboard/dashboard';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
 import Balance from './pages/Client/balance';
 import { Metrics } from './pages/Admin/metrics';
+import RegisterPayment from './pages/Admin/RegisterPayment';
+import AdminProfile from './pages/Admin/AdminProfile';
 import { useAuth } from './hooks/useAuth';
 import { Box, CircularProgress, Typography } from '@mui/material';
 
@@ -119,6 +121,26 @@ function App() {
           }
         />
 
+        {/* ✅ NUEVO: Rutas Protegidas - Registrar Pago */}
+        <Route
+          path="/admin/register-payment"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <RegisterPayment />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ NUEVO: Rutas Protegidas - Perfil del Admin */}
+        <Route
+          path="/admin/profile"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminProfile />
+            </ProtectedRoute>
+          }
+        />
+
         {/* ✅ Ruta raíz - Redirige según autenticación y rol */}
         <Route
           path="/"
@@ -147,8 +169,8 @@ function App() {
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-              minHeight: '100vh',
-              backgroundColor: '#f5f5f5',
+                minHeight: '100vh',
+                backgroundColor: '#f5f5f5',
               }}
             >
               <Typography variant="h4" color="error" gutterBottom>
