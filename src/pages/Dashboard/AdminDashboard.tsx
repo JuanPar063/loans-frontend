@@ -30,6 +30,14 @@ import {
 import AdminSidebar from '../../components/Layout/AdminSidebar';
 import { useAuth } from '../../hooks/useAuth';
 import { profileService, ProfileResponse } from '../../services/profile.service';
+import { adminService } from '../../services/admin.service';
+
+type Metrics = {
+  totalUsers: number;
+  totalLoans: number;
+  totalAmount: number;
+  pendingApprovals: number;
+};
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -38,13 +46,26 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Estadísticas simuladas
-  const [stats] = useState({
-    totalUsers: 150,
-    totalLoans: 45,
-    totalAmount: 1250000,
-    pendingApprovals: 8,
-  });
+  // Estadísticas (traídas desde backend)
+  const [stats, setStats] = useState<Metrics | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
+
+  const loadStats = async () => {
+    if (!user) return;
+    try {
+      setStatsLoading(true);
+      setStatsError('');
+      const res = await adminService.getMetrics(user.id);
+      // asumir que la API devuelve el objeto directamente en res.data
+      setStats(res.data);
+    } catch (err: any) {
+      console.error('Error al cargar métricas:', err);
+      setStatsError('No se pudieron cargar las métricas del sistema');
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const loadProfile = async () => {
     if (!user) return;
@@ -63,6 +84,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadProfile();
+    loadStats();
   }, [user]);
 
   return (
@@ -131,7 +153,7 @@ export default function AdminDashboard() {
                 icon: <People />,
                 color: '#3f51b5',
                 label: 'Total Usuarios',
-                value: stats.totalUsers,
+                value: stats ? stats.totalUsers : (statsLoading ? <CircularProgress size={20} /> : '—'),
                 chip: '+12% este mes',
                 chipColor: 'success',
               },
@@ -139,7 +161,7 @@ export default function AdminDashboard() {
                 icon: <AttachMoney />,
                 color: '#f50057',
                 label: 'Total Préstamos',
-                value: stats.totalLoans,
+                value: stats ? stats.totalLoans : (statsLoading ? <CircularProgress size={20} /> : '—'),
                 chip: '+5 esta semana',
                 chipColor: 'info',
               },
@@ -147,7 +169,7 @@ export default function AdminDashboard() {
                 icon: <TrendingUp />,
                 color: '#4caf50',
                 label: 'Monto Total',
-                value: `$${stats.totalAmount.toLocaleString()}`,
+                value: stats ? `$${stats.totalAmount.toLocaleString()}` : (statsLoading ? <CircularProgress size={20} /> : '—'),
                 chip: 'Activo',
                 chipColor: 'success',
               },
@@ -155,7 +177,7 @@ export default function AdminDashboard() {
                 icon: <Settings />,
                 color: '#ff9800',
                 label: 'Pendientes',
-                value: stats.pendingApprovals,
+                value: stats ? stats.pendingApprovals : (statsLoading ? <CircularProgress size={20} /> : '—'),
                 chip: 'Requieren atención',
                 chipColor: 'warning',
               },
