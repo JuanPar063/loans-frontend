@@ -66,11 +66,11 @@ export default function AdminSidebar() {
           <ListItemText primary="Registrar Pago" />
         </ListItemButton>
 
-        <ListItemButton onClick={() => navigate('/admin/users')}>
+        <ListItemButton onClick={() => navigate('/admin/pending-loans')}>
           <ListItemIcon>
             <PeopleIcon sx={{ color: 'white' }} />
           </ListItemIcon>
-          <ListItemText primary="Usuarios" />
+          <ListItemText primary="Prestamos a aprobar" />
         </ListItemButton>
 
         {/* ✅ NUEVO: Enlace a Perfil del Admin */}
