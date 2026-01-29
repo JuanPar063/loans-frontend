@@ -9,10 +9,11 @@ import Login from './pages/Auth/login';
 import Dashboard from './pages/Dashboard/dashboard';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
 import Balance from './pages/Client/balance';
-import Metrics from './pages/Admin/metrics'; 
+import Metrics from './pages/Admin/metrics';
 import RegisterPayment from './pages/Admin/RegisterPayment';
 import AdminProfile from './pages/Admin/AdminProfile';
 import AdminPendingLoans from './pages/Admin/PendingLoans';
+import AdminClientAnalysis from './pages/Admin/AdminClientAnalysis';
 import { useAuth } from './hooks/useAuth';
 import { Box, CircularProgress, Typography } from '@mui/material';
 
@@ -141,12 +142,20 @@ function App() {
             </ProtectedRoute>
           }
         />
-        {/* ✅ NUEVO: Rutas Protegidas - Perfil del Admin */}
+        {/* ✅ NUEVO: Rutas Protegidas - Pendientes de Préstamos */}
         <Route
           path="/admin/pending-loans"
           element={
             <ProtectedRoute requiredRole="admin">
               <AdminPendingLoans />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/client-analysis"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminClientAnalysis />
             </ProtectedRoute>
           }
         />

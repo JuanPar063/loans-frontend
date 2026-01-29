@@ -73,6 +73,13 @@ export default function AdminSidebar() {
           <ListItemText primary="Prestamos a aprobar" />
         </ListItemButton>
 
+        <ListItemButton onClick={() => navigate('/admin/client-analysis')}>
+          <ListItemIcon>
+            <PeopleIcon sx={{ color: 'white' }} />
+          </ListItemIcon>
+          <ListItemText primary="Análisis de Cliente" />
+        </ListItemButton>
+
         {/* ✅ NUEVO: Enlace a Perfil del Admin */}
         <ListItemButton onClick={() => navigate('/admin/profile')}>
           <ListItemIcon>
