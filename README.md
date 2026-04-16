@@ -1,46 +1,70 @@
-# Getting Started with Create React App
+# Loans Frontend - Interfaz de Usuario
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Frontend del sistema de gestión de préstamos, construido con **React** y **TypeScript**. Se integra con los microservicios del backend mediante una arquitectura de microservicios.
 
-## Available Scripts
+## Descripción
 
-In the project directory, you can run:
+Este repositorio contiene la interfaz de usuario del sistema [loans-software](https://github.com/JuanPar063/loans-software). Permite a los usuarios solicitar préstamos, consultar su estado, ver su historial y gestionar su perfil. Los administradores pueden supervisar y aprobar solicitudes desde un panel dedicado.
 
-### `npm start`
+## Tecnologías Utilizadas
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **React** – Biblioteca de UI
+- - **TypeScript** – Tipado estático
+  - - **Create React App** – Scaffolding del proyecto
+    - - **CSS / Styled Components** – Estilos
+     
+      - ## Funcionalidades
+     
+      - - Registro e inicio de sesión de usuarios
+        - - Solicitud de nuevos préstamos
+          - - Consulta del estado de préstamos activos
+            - - Historial de préstamos del usuario
+              - - Panel de administración para supervisión de solicitudes
+                - - Gestión de perfil de usuario
+                 
+                  - ## Requisitos Previos
+                 
+                  - - Node.js >= 16
+                    - - npm
+                     
+                      - ## Instalación
+                     
+                      - ```bash
+                        npm install
+                        ```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+                        ## Ejecución
 
-### `npm test`
+                        ```bash
+                        # Desarrollo
+                        npm start
+                        # La aplicación abre en http://localhost:3000
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+                        # Construcción para producción
+                        npm run build
+                        ```
 
-### `npm run build`
+                        ## Tests
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+                        ```bash
+                        npm test
+                        ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+                        ## Variables de Entorno
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+                        ```env
+                        REACT_APP_API_URL=http://localhost:3000
+                        REACT_APP_USER_SERVICE_URL=http://localhost:3001
+                        REACT_APP_LOAN_SERVICE_URL=http://localhost:3002
+                        ```
 
-### `npm run eject`
+                        ## Parte del Ecosistema
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+                        - [loans-software](https://github.com/JuanPar063/loans-software) – Orquestador principal
+                        - - [user-service](https://github.com/JuanPar063/user-service) – Servicio de usuarios
+                          - - [loan-service](https://github.com/JuanPar063/loan-service) – Servicio de préstamos
+                            - - [admin-service](https://github.com/JuanPar063/admin-service) – Servicio de administración
+                             
+                              - ## Autor
+                             
+                              - Juan Sebastian Pardo Anzola – [@JuanPar063](https://github.com/JuanPar063)
