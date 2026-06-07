@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { Search, CheckCircle, Cancel } from '@mui/icons-material';
 import AdminSidebar from '../../components/Layout/AdminSidebar';
-import axios from 'axios';
+import api from '../../services/api.client';
 
 interface Loan {
     id: string;
@@ -39,7 +39,6 @@ export default function PendingLoans() {
     const [selectedLoan, setSelectedLoan] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
-    const LOAN_SERVICE_URL = process.env.REACT_APP_LOAN_SERVICE_URL || 'http://localhost:3002';
     const [approveDialogOpen, setApproveDialogOpen] = useState(false);
     const [interestRate, setInterestRate] = useState('');
     const [termMonths, setTermMonths] = useState('');
@@ -50,8 +49,8 @@ export default function PendingLoans() {
 
     const loadPendingLoans = async () => {
         try {
-            const response = await axios.get(
-                `${LOAN_SERVICE_URL}/loans/pending?page=${page}&limit=10`
+            const response = await api.get(
+                `/loans/pending?page=${page}&limit=10`
             );
             setLoans(response.data.data);
             setTotal(response.data.total);
@@ -66,8 +65,8 @@ export default function PendingLoans() {
         if (!searchDocument.trim()) return;
 
         try {
-            const response = await axios.get(
-                `${LOAN_SERVICE_URL}/loans/pending/search/${searchDocument}`
+            const response = await api.get(
+                `/loans/pending/search/${searchDocument}`
             );
             setLoans(response.data);
         } catch (error) {
@@ -84,7 +83,7 @@ export default function PendingLoans() {
 
     const handleReject = async (loanId: string) => {
         if (window.confirm('¿Rechazar este préstamo?')) {
-            await axios.put(`${LOAN_SERVICE_URL}/loans/${loanId}/reject`);
+            await api.put(`/loans/${loanId}/reject`);
             loadPendingLoans();
         }
     };
@@ -93,7 +92,7 @@ export default function PendingLoans() {
         if (!selectedLoan) return;
 
         try {
-            await axios.put(`${LOAN_SERVICE_URL}/loans/${selectedLoan}/approve`, {
+            await api.put(`/loans/${selectedLoan}/approve`, {
                 interestRate: Number(interestRate),
                 termMonths: Number(termMonths),
             });

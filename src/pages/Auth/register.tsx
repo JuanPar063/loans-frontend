@@ -20,7 +20,7 @@ import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
 import { profileService } from '../../services/profile.service';
-import axios from 'axios';
+import api from '../../services/api.client';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -239,13 +239,10 @@ const Register = () => {
     try {
       console.log(`🔄 Ejecutando rollback para usuario ${username} (${userId})...`);
 
-      const AUTH_SERVICE_URL = process.env.REACT_APP_AUTH_SERVICE_URL || 'http://localhost:3001';
-      const token = localStorage.getItem('token');
-
-      // Llamar al endpoint de eliminación del usuario
-      await axios.delete(`${AUTH_SERVICE_URL}/auth/users/${userId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      // Pasa por el gateway (/api/v1/auth/users/:id). El interceptor adjunta el
+      // token recién emitido del propio usuario, requerido ahora que el endpoint
+      // de borrado dejó de ser público (auto-rollback).
+      await api.delete(`/auth/users/${userId}`);
 
       console.log('✅ Rollback completado: Usuario eliminado correctamente');
 

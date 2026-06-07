@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-// ...existing code (imports)...
+import api from './api.client';
 
 export interface Profile {
   id_user: string;
@@ -79,24 +77,20 @@ export interface ClientAnalysisItem {
 
 type WrappedResponse<T> = { message?: string; data: T } | T;
 
-const ADMIN_SERVICE_URL =
-  process.env.REACT_APP_ADMIN_SERVICE_URL || 'http://localhost:3003';
-
 function unwrap<T>(payload: WrappedResponse<T>): T {
   return (payload as any)?.data ?? (payload as T);
 }
 
+// Pasa por el gateway (/api/v1/credit-analysis); el token lo adjunta api.client.
 export const creditAnalysisService = {
   async getAllClientsAnalyses(): Promise<ClientAnalysisItem[]> {
-    const res = await axios.get<WrappedResponse<ClientAnalysisItem[]>>(
-      `${ADMIN_SERVICE_URL}/credit-analysis`,
-    );
+    const res = await api.get<WrappedResponse<ClientAnalysisItem[]>>(`/credit-analysis`);
     return unwrap(res.data);
   },
 
   async getClientAnalysisByDocument(documentNumber: string): Promise<ClientAnalysisItem> {
-    const res = await axios.get<WrappedResponse<ClientAnalysisItem>>(
-      `${ADMIN_SERVICE_URL}/credit-analysis/document/${encodeURIComponent(documentNumber)}`,
+    const res = await api.get<WrappedResponse<ClientAnalysisItem>>(
+      `/credit-analysis/document/${encodeURIComponent(documentNumber)}`,
     );
     return unwrap(res.data);
   },

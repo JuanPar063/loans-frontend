@@ -1,8 +1,6 @@
 // loans-frontend/src/services/loan.service.tsx
 
-import axios from 'axios';
-
-const LOAN_SERVICE_URL = process.env.REACT_APP_LOAN_SERVICE_URL || 'http://localhost:3002';
+import api from './api.client';
 
 export interface LoanBalance {
   userId: string;
@@ -37,108 +35,40 @@ export interface PaymentDetail {
   remainingBalance: number;
 }
 
+// Genera una clave de idempotencia para pagos (evita duplicados en reintentos).
+const newIdempotencyKey = (): string =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 class LoanService {
-  /**
-   * ✅ Obtiene el balance completo de préstamos de un usuario
-   */
+  // El token lo adjunta el interceptor de api.client; todo pasa por el gateway.
   async getLoanBalance(userId: string): Promise<LoanBalance> {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No hay token de autenticación');
-      }
-
-      console.log(`📊 Obteniendo balance para usuario: ${userId}`);
-
-      const response = await axios.get(`${LOAN_SERVICE_URL}/loans/balance/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log('✅ Balance obtenido:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error al obtener balance:', error.response?.data || error.message);
-      throw error;
-    }
+    const response = await api.get(`/loans/balance/${userId}`);
+    return response.data;
   }
 
-  /**
-   * Obtiene todos los préstamos de un usuario
-   */
   async getUserLoans(userId: string): Promise<LoanDetail[]> {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No hay token de autenticación');
-      }
-
-      const response = await axios.get(`${LOAN_SERVICE_URL}/loans/my/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error al obtener préstamos:', error);
-      throw error;
-    }
+    const response = await api.get(`/loans/my/${userId}`);
+    return response.data;
   }
 
-  /**
-   * Solicita un nuevo préstamo
-   */
   async requestLoan(data: {
     userId: string;
     amount: number;
     typeId: string;
   }): Promise<LoanDetail> {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No hay token de autenticación');
-      }
-
-      const response = await axios.post(`${LOAN_SERVICE_URL}/loans/request`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error al solicitar préstamo:', error);
-      throw error;
-    }
+    const response = await api.post(`/loans/request`, data);
+    return response.data;
   }
 
-  /**
-   * Realiza un pago sobre un préstamo
-   */
   async makePayment(loanId: string, amount: number): Promise<PaymentDetail> {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No hay token de autenticación');
-      }
-
-      const response = await axios.post(
-        `${LOAN_SERVICE_URL}/loans/${loanId}/payments`,
-        { amount },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error al realizar pago:', error);
-      throw error;
-    }
+    const response = await api.post(
+      `/loans/${loanId}/payments`,
+      { amount },
+      { headers: { 'Idempotency-Key': newIdempotencyKey() } },
+    );
+    return response.data;
   }
 }
 
