@@ -36,7 +36,7 @@ import {
 } from '@mui/icons-material';
 import AdminSidebar from '../../components/Layout/AdminSidebar';
 import { useAuth } from '../../hooks/useAuth';
-import axios from 'axios';
+import api from '../../services/api.client';
 
 interface MetricData {
   clientId: string;
@@ -82,8 +82,6 @@ export default function Metrics() {
   const [page, setPage] = useState(1);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
-  const ADMIN_SERVICE_URL = process.env.REACT_APP_ADMIN_SERVICE_URL || 'http://localhost:3003';
-
   useEffect(() => {
     loadDashboard();
   }, [user, page]);
@@ -95,20 +93,10 @@ export default function Metrics() {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No hay token de autenticación');
-      }
-
       console.log('📊 Cargando dashboard de métricas...');
 
-      const response = await axios.get(
-        `${ADMIN_SERVICE_URL}/admin/dashboard/metrics?page=${page}&limit=10`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await api.get(
+        `/admin/dashboard/metrics?page=${page}&limit=10`,
       );
 
       console.log('✅ Dashboard cargado:', response.data);
@@ -134,20 +122,10 @@ export default function Metrics() {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No hay token de autenticación');
-      }
-
       console.log(`🔍 Buscando métricas del cliente: ${searchClientId}`);
 
-      const response = await axios.get(
-        `${ADMIN_SERVICE_URL}/admin/clients/${searchClientId}/metrics/export`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await api.get(
+        `/admin/clients/${searchClientId}/metrics/export`,
       );
 
       console.log('✅ Detalles del cliente cargados:', response.data);
