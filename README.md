@@ -1,46 +1,58 @@
-# Getting Started with Create React App
+# loans-frontend — SPA (React + MUI)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Aplicación web (React 19 + Material UI 7, Create React App) para clientes y administradores del
+sistema de préstamos. **Habla únicamente con el API gateway** (`/api/v1/...`), no con los servicios
+por separado.
 
-## Available Scripts
+- **Puerto:** 3004 · **Base API:** `REACT_APP_API_URL` (def. `http://localhost:3005`) + `/api/v1`
 
-In the project directory, you can run:
+## Rol dentro del sistema
+```
+navegador ─► loans-frontend (:3004) ─► API gateway (:3005) ─► /api/v1/* ─► microservicios
+```
+Todas las peticiones pasan por una instancia Axios central (`src/services/api.client.tsx`) que:
+- añade `Authorization: Bearer <token>` (token en `localStorage`),
+- maneja 401/403 de forma centralizada,
+- tipa los errores (`ApiError`).
 
-### `npm start`
+## Flujo de uso (UI)
+1. **/register** — saga de registro: `POST /auth/register` → `POST /profiles`; si falla el perfil,
+   rollback con `DELETE /auth/users/:id` (con el token del propio usuario).
+2. **/login** — guarda token + user.
+3. **Cliente:** `/dashboard`, `/profile`, `/balance` (solicitar préstamo, ver balance, pagar).
+4. **Admin:** `/admin/dashboard`, `/admin/metrics`, `/admin/pending-loans` (aprobar/rechazar),
+   `/admin/register-payment` (pago manual), `/admin/client-analysis`.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+El acceso por rol lo controla `ProtectedRoute` (decodifica el JWT con `jwt-decode`).
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Servicios (`src/services/`)
+`auth.service`, `profile.service`, `loan.service`, `admin.service`, `admin-loan.service`,
+`creditAnalysis.service` — todos usan el cliente compartido contra el gateway. Los pagos envían un
+header `Idempotency-Key` (UUID) para no duplicar.
 
-### `npm test`
+## Manejo de errores
+- `<ErrorBoundary>` global (`src/components/common/ErrorBoundary.tsx`) evita pantallas en blanco.
+- `SnackbarProvider` (notistack) disponible para notificaciones/toasts.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Variables de entorno (ver `.env.example`)
+- `REACT_APP_API_URL` — **URL del gateway** (ej. `http://localhost:3005`). En prod, tu dominio.
+- `PORT=3004`, `REACT_APP_ENV`, `REACT_APP_DEBUG`.
+> Las antiguas `REACT_APP_*_SERVICE_URL` (puertos 3000-3003) quedaron **obsoletas**.
 
-### `npm run build`
+## Cómo testear
+Recomendado vía `../loans-software` (`docker compose up`) — sirve el build en `:3004` y el gateway en `:3005`.
+Desarrollo local:
+```bash
+npm install
+cp .env.example .env   # REACT_APP_API_URL=http://localhost:3005 (gateway corriendo)
+npm start              # http://localhost:3004
+npm run build          # build de producción (CRA)
+```
+> Si corres `npm start` en otro puerto, recuerda que el gateway solo permite por CORS los orígenes
+> de su allowlist (`:3004`, `:3005`); añade el tuyo en `loans-software/nginx.conf` si hace falta.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Notas para nuevos administradores del código
+- CRA (`react-scripts`) — migrar a Vite/Next es una mejora pendiente.
+- `useAuth` centraliza sesión/expiración; el token y el `user` viven en `localStorage`
+  (mover a cookies HttpOnly es una mejora de seguridad pendiente).
+- Build muestra warnings de lint pre-existentes (no rompen el build).
