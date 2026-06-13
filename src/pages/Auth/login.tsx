@@ -1,18 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Paper,
   TextField,
   Button,
   Typography,
   Box,
+  Stack,
   Alert,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
+import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
+import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
+import InsightsOutlinedIcon from '@mui/icons-material/InsightsOutlined';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
+
+const BrandMark = ({ dark = false }: { dark?: boolean }) => (
+  <Stack direction="row" spacing={1.25} alignItems="center">
+    <Box
+      sx={{
+        width: 40,
+        height: 40,
+        borderRadius: 2,
+        display: 'grid',
+        placeItems: 'center',
+        bgcolor: dark ? 'rgba(255,255,255,0.12)' : 'primary.main',
+        color: '#fff',
+      }}
+    >
+      <AccountBalanceRoundedIcon fontSize="small" />
+    </Box>
+    <Typography variant="h6" sx={{ fontWeight: 700, color: dark ? '#fff' : 'primary.main' }}>
+      Préstamos
+    </Typography>
+  </Stack>
+);
 
 const Login = () => {
   const navigate = useNavigate();
@@ -147,51 +173,99 @@ const Login = () => {
     },
   });
 
+  const features = [
+    { icon: <VerifiedUserOutlinedIcon />, title: 'Seguro por diseño', desc: 'Autenticación JWT y control de acceso por rol.' },
+    { icon: <BoltOutlinedIcon />, title: 'Aprobación ágil', desc: 'Solicita y aprueba créditos en minutos.' },
+    { icon: <InsightsOutlinedIcon />, title: 'Análisis crediticio', desc: 'Score y capacidad de endeudamiento en tiempo real.' },
+  ];
+
   return (
-    <Container component="main" maxWidth="xs">
+    <Box sx={{ minHeight: '100vh', display: 'flex' }}>
+      {/* Panel de marca (oculto en móvil) */}
       <Box
         sx={{
-          marginTop: 8,
-          display: 'flex',
+          flex: 1,
+          display: { xs: 'none', md: 'flex' },
           flexDirection: 'column',
-          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 6,
+          color: '#fff',
+          background: (t) =>
+            `radial-gradient(1200px 600px at -10% -10%, ${alpha(t.palette.secondary.main, 0.35)}, transparent 55%), linear-gradient(135deg, ${t.palette.primary.dark} 0%, ${t.palette.primary.main} 60%, ${t.palette.primary.light} 140%)`,
         }}
       >
-        <Paper
-          elevation={3}
-          sx={{
-            padding: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            backgroundColor: 'white',
-            borderRadius: 2,
-            width: '100%',
-          }}
-        >
-          <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-            Iniciar Sesión
+        <BrandMark dark />
+        <Box sx={{ maxWidth: 460 }}>
+          <Typography variant="h3" sx={{ fontWeight: 700, mb: 2, lineHeight: 1.15 }}>
+            La plataforma de crédito para tu negocio.
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.78)', mb: 4 }}>
+            Gestiona solicitudes, pagos y análisis de riesgo desde un único panel,
+            con la seguridad que exige una operación financiera.
+          </Typography>
+          <Stack spacing={2.5}>
+            {features.map((f) => (
+              <Stack key={f.title} direction="row" spacing={2} alignItems="flex-start">
+                <Box
+                  sx={{
+                    width: 40, height: 40, borderRadius: 2, flexShrink: 0,
+                    display: 'grid', placeItems: 'center',
+                    bgcolor: 'rgba(255,255,255,0.12)', color: '#fff',
+                  }}
+                >
+                  {f.icon}
+                </Box>
+                <Box>
+                  <Typography sx={{ fontWeight: 600 }}>{f.title}</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                    {f.desc}
+                  </Typography>
+                </Box>
+              </Stack>
+            ))}
+          </Stack>
+        </Box>
+        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)' }}>
+          © {new Date().getFullYear()} Préstamos · Todos los derechos reservados
+        </Typography>
+      </Box>
+
+      {/* Panel del formulario */}
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: { xs: 3, sm: 6 },
+          bgcolor: 'background.default',
+        }}
+      >
+        <Paper elevation={3} sx={{ p: { xs: 3, sm: 5 }, width: '100%', maxWidth: 440 }}>
+          <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
+            <BrandMark />
+          </Box>
+
+          <Typography component="h1" variant="h4" sx={{ mb: 0.5 }}>
+            Bienvenido de nuevo
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Ingresa tus credenciales para acceder a tu panel.
           </Typography>
 
-          {/* Mensaje de éxito */}
           {success && (
-            <Alert severity="success" sx={{ width: '100%', mb: 2 }}>
+            <Alert severity="success" sx={{ mb: 2 }}>
               {success}
             </Alert>
           )}
 
-          {/* Mensaje de error mejorado con botón condicional */}
           {error && (
             <Alert
               severity="error"
-              sx={{ width: '100%', mb: 2 }}
+              sx={{ mb: 2 }}
               action={
                 error.includes('no existe') || error.includes('regístrate') ? (
-                  <Button
-                    color="inherit"
-                    size="small"
-                    onClick={() => navigate('/register')}
-                  >
+                  <Button color="inherit" size="small" onClick={() => navigate('/register')}>
                     Registrarse
                   </Button>
                 ) : undefined
@@ -235,13 +309,14 @@ const Login = () => {
             <Button
               type="submit"
               fullWidth
+              size="large"
               variant="contained"
-              sx={{ mt: 3, mb: 2, backgroundColor: '#1976d2' }}
+              sx={{ mt: 3, mb: 1.5 }}
               disabled={loading}
             >
               {loading ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CircularProgress size={24} color="inherit" />
+                  <CircularProgress size={22} color="inherit" />
                   <span>Iniciando sesión...</span>
                 </Box>
               ) : (
@@ -249,18 +324,13 @@ const Login = () => {
               )}
             </Button>
 
-            <Button
-              fullWidth
-              variant="text"
-              onClick={() => navigate('/register')}
-              disabled={loading}
-            >
+            <Button fullWidth variant="text" onClick={() => navigate('/register')} disabled={loading}>
               ¿No tienes cuenta? Regístrate
             </Button>
           </form>
         </Paper>
       </Box>
-    </Container>
+    </Box>
   );
 };
 
