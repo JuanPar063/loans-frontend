@@ -134,7 +134,7 @@ export default function PendingLoans() {
             <AdminSidebar />
             <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
                 {/* Header */}
-                <Paper sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                <Paper sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)', color: 'white' }}>
                     <Typography variant="h4" fontWeight="bold">
                         📝 Préstamos Pendientes de Aprobación
                     </Typography>

@@ -20,7 +20,8 @@ export interface LoanSummary {
 }
 
 export interface ManualPaymentData {
-  capitalPayment: number;
+  // Monto TOTAL del pago (el backend cubre primero el interés y el resto a capital).
+  amount: number;
   paymentDate: string;
 }
 
@@ -40,6 +41,30 @@ class AdminLoanService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Busca un cliente por **nombre o cédula**. Trae la lista de perfiles y filtra
+   * en cliente: coincidencia exacta de documento o coincidencia parcial de nombre.
+   */
+  async searchUser(query: string): Promise<UserSearchResult | null> {
+    const res = await api.get(`/profiles`);
+    const profiles: any[] = res.data?.data ?? res.data ?? [];
+    const q = query.trim().toLowerCase();
+    const match = profiles.find(
+      (p) =>
+        String(p.document_number ?? '').toLowerCase() === q ||
+        `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim().toLowerCase().includes(q) ||
+        String(p.name ?? '').toLowerCase().includes(q),
+    );
+    if (!match) return null;
+    return {
+      id_user: match.id_user,
+      first_name: match.first_name,
+      last_name: match.last_name,
+      document_number: match.document_number,
+      document_type: match.document_type,
+    };
   }
 
   async getUserLoans(userId: string): Promise<LoanSummary[]> {

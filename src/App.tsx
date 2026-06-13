@@ -25,7 +25,7 @@ const UnauthorizedPage = () => (
       justifyContent: 'center',
       alignItems: 'center',
       minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
+      backgroundColor: 'background.default',
     }}
   >
     <Typography variant="h4" color="error" gutterBottom>
@@ -54,7 +54,7 @@ function App() {
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          backgroundColor: '#f5f5f5',
+          backgroundColor: 'background.default',
         }}
       >
         <CircularProgress size={60} />
@@ -188,7 +188,7 @@ function App() {
                 justifyContent: 'center',
                 alignItems: 'center',
                 minHeight: '100vh',
-                backgroundColor: '#f5f5f5',
+                backgroundColor: 'background.default',
               }}
             >
               <Typography variant="h4" color="error" gutterBottom>

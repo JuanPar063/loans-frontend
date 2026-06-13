@@ -7,6 +7,8 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  Box,
+  Typography,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -17,6 +19,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ListItemButton } from '@mui/material';
+import ColorModeToggle from '../common/ColorModeToggle';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -37,8 +40,10 @@ const Sidebar = () => {
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
-          backgroundColor: '#1976d2',
+          backgroundColor: '#0F2A43',
           color: 'white',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
@@ -74,6 +79,14 @@ const Sidebar = () => {
           <ListItemText primary="Cerrar Sesión" />
         </ListItemButton>
       </List>
+
+      {/* Toggle de tema, anclado al fondo */}
+      <Box sx={{ mt: 'auto', p: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <ColorModeToggle color="white" />
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+          Tema claro / oscuro
+        </Typography>
+      </Box>
     </Drawer>
   );
 };

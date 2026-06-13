@@ -18,6 +18,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
+import ColorModeToggle from '../../components/common/ColorModeToggle';
 
 const BrandMark = ({ dark = false }: { dark?: boolean }) => (
   <Stack direction="row" spacing={1.25} alignItems="center">
@@ -180,7 +181,11 @@ const Login = () => {
   ];
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', position: 'relative' }}>
+      <Box sx={{ position: 'absolute', top: 16, right: 16, zIndex: 2 }}>
+        <ColorModeToggle />
+      </Box>
+
       {/* Panel de marca (oculto en móvil) */}
       <Box
         sx={{

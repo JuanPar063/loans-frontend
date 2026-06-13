@@ -1,17 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 import { SnackbarProvider } from 'notistack';
 import App from './App';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import theme from './theme/theme';
+import { AppThemeProvider } from './theme/ColorModeContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <AppThemeProvider>
       <ErrorBoundary>
         <SnackbarProvider
           maxSnack={3}
@@ -21,6 +18,6 @@ root.render(
           <App />
         </SnackbarProvider>
       </ErrorBoundary>
-    </ThemeProvider>
+    </AppThemeProvider>
   </React.StrictMode>,
 );

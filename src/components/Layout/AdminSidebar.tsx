@@ -8,6 +8,8 @@ import {
   ListItemText,
   Divider,
   ListItemButton,
+  Box,
+  Typography,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -18,6 +20,7 @@ import {
   People as PeopleIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import ColorModeToggle from '../common/ColorModeToggle';
 
 export default function AdminSidebar() {
   const navigate = useNavigate();
@@ -38,8 +41,10 @@ export default function AdminSidebar() {
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
-          backgroundColor: '#667eea',
+          backgroundColor: '#0F2A43',
           color: 'white',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
     >
@@ -97,6 +102,14 @@ export default function AdminSidebar() {
           <ListItemText primary="Cerrar Sesión" />
         </ListItemButton>
       </List>
+
+      {/* Toggle de tema, anclado al fondo */}
+      <Box sx={{ mt: 'auto', p: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <ColorModeToggle color="white" />
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
+          Tema claro / oscuro
+        </Typography>
+      </Box>
     </Drawer>
   );
 }

@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { Search, AttachMoney, CalendarToday, CheckCircle } from '@mui/icons-material';
 import AdminSidebar from '../../components/Layout/AdminSidebar';
+import { useSnackbar } from 'notistack';
 import {
   adminLoanService,
   UserSearchResult,
@@ -49,11 +50,13 @@ export default function RegisterPayment() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [lastPayment, setLastPayment] = useState<any>(null);
+  const { enqueueSnackbar } = useSnackbar();
 
-  // Buscar usuario por documento
+  // Buscar usuario por documento o nombre
   const handleSearchUser = async () => {
     if (!documentNumber.trim()) {
-      setSearchError('Ingrese un número de documento');
+      setSearchError('Ingrese un documento o nombre del cliente');
       return;
     }
 
@@ -64,10 +67,10 @@ export default function RegisterPayment() {
     setSelectedLoanId('');
 
     try {
-      const foundUser = await adminLoanService.searchUserByDocument(documentNumber);
+      const foundUser = await adminLoanService.searchUser(documentNumber);
 
       if (!foundUser) {
-        setSearchError('No se encontró ningún usuario con ese documento');
+        setSearchError('No se encontró ningún cliente con ese documento o nombre');
         return;
       }
 
@@ -110,9 +113,10 @@ export default function RegisterPayment() {
     }
 
     const selectedLoan = loans.find((l) => l.id === selectedLoanId);
-    if (selectedLoan && amount > selectedLoan.remainingBalance) {
+    const maxPay = selectedLoan ? selectedLoan.remainingBalance + estInterest(selectedLoan) : amount;
+    if (selectedLoan && amount > maxPay + 0.01) {
       setSubmitError(
-        `El monto no puede ser mayor al saldo pendiente (${formatCurrency(selectedLoan.remainingBalance)})`
+        `El monto no puede exceder el saldo + interés del periodo (${formatCurrency(maxPay)})`
       );
       return;
     }
@@ -120,17 +124,24 @@ export default function RegisterPayment() {
     setSubmitting(true);
     setSubmitError('');
     setSubmitSuccess(false);
+    setLastPayment(null);
 
     try {
       const paymentData: ManualPaymentData = {
-        capitalPayment: amount,
+        amount,
         paymentDate: new Date(paymentDate).toISOString(),
       };
 
-      await adminLoanService.registerManualPayment(selectedLoanId, paymentData);
+      // registerManualPayment espera (await) la respuesta del backend, que a su vez
+      // espera la confirmación de la BD: solo aquí damos el pago por efectuado.
+      const result = await adminLoanService.registerManualPayment(selectedLoanId, paymentData);
 
+      setLastPayment(result);
       setSubmitSuccess(true);
-      
+      enqueueSnackbar('✅ Pago registrado y confirmado en la base de datos', {
+        variant: 'success',
+      });
+
       // Actualizar la lista de préstamos
       if (user) {
         const updatedLoans = await adminLoanService.getUserLoans(user.id_user);
@@ -141,20 +152,23 @@ export default function RegisterPayment() {
         );
       }
 
-      // Limpiar formulario
+      // Limpiar el monto y la selección (dejamos visible el desglose del pago)
       setCapitalPayment('');
       setSelectedLoanId('');
-      
-      setTimeout(() => setSubmitSuccess(false), 3000);
     } catch (error: any) {
       setSubmitError(
         error.response?.data?.message ||
           'Error al registrar el pago. Intente nuevamente.'
       );
+      enqueueSnackbar('No se pudo registrar el pago', { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Interés del periodo estimado para el préstamo (tasa mensual sobre saldo).
+  const estInterest = (loan: LoanSummary) =>
+    (loan.remainingBalance * (loan.interestRate || 0)) / 100;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -183,7 +197,7 @@ export default function RegisterPayment() {
         sx={{
           flexGrow: 1,
           p: 3,
-          backgroundColor: '#f5f5f5',
+          backgroundColor: 'background.default',
           minHeight: '100vh',
         }}
       >
@@ -194,7 +208,7 @@ export default function RegisterPayment() {
             sx={{
               p: 3,
               mb: 3,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
               color: 'white',
             }}
           >
@@ -202,9 +216,30 @@ export default function RegisterPayment() {
               💰 Registrar Pago
             </Typography>
             <Typography variant="body1" sx={{ mt: 1, opacity: 0.9 }}>
-              Buscar cliente por documento y registrar pago a préstamo
+              Buscar cliente por documento o nombre y registrar pago a préstamo
             </Typography>
           </Paper>
+
+          {/* Confirmación de pago (visible tras la confirmación de la BD) */}
+          {submitSuccess && lastPayment && (
+            <Alert
+              severity="success"
+              icon={<CheckCircle />}
+              sx={{ mb: 3 }}
+              onClose={() => setSubmitSuccess(false)}
+            >
+              <Typography fontWeight={700}>
+                Pago registrado y confirmado en la base de datos
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                Total pagado: <strong>{formatCurrency(Number(lastPayment.amountPaid))}</strong>{' '}
+                &nbsp;·&nbsp; Interés del periodo:{' '}
+                {formatCurrency(Number(lastPayment.interestCharged))} &nbsp;·&nbsp; Abono a
+                capital: {formatCurrency(Number(lastPayment.capitalPayment))} &nbsp;·&nbsp; Nuevo
+                saldo: <strong>{formatCurrency(Number(lastPayment.remainingBalance))}</strong>
+              </Typography>
+            </Alert>
+          )}
 
           {/* Búsqueda de Usuario */}
           <Paper sx={{ p: 3, mb: 3 }}>
@@ -215,8 +250,8 @@ export default function RegisterPayment() {
             <Stack direction="row" spacing={2} alignItems="flex-start">
               <TextField
                 fullWidth
-                label="Número de Documento"
-                placeholder="Ej: 1020304050"
+                label="Documento o nombre del cliente"
+                placeholder="Ej: 1000000001  o  Carlos Gomez"
                 value={documentNumber}
                 onChange={(e) => setDocumentNumber(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearchUser()}
@@ -279,7 +314,7 @@ export default function RegisterPayment() {
                       key={loan.id}
                       sx={{
                         mb: 2,
-                        border: selectedLoanId === loan.id ? '2px solid #667eea' : '1px solid #e0e0e0',
+                        border: selectedLoanId === loan.id ? '2px solid #0F2A43' : '1px solid #e0e0e0',
                       }}
                     >
                       <CardContent>
@@ -345,12 +380,6 @@ export default function RegisterPayment() {
                 💳 Registrar Pago
               </Typography>
 
-              {submitSuccess && (
-                <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 3 }}>
-                  ✅ Pago registrado exitosamente
-                </Alert>
-              )}
-
               {submitError && (
                 <Alert severity="error" sx={{ mb: 3 }}>
                   {submitError}
@@ -360,7 +389,7 @@ export default function RegisterPayment() {
               <Stack spacing={3}>
                 <TextField
                   fullWidth
-                  label="Monto a Capital"
+                  label="Monto del pago (total)"
                   type="number"
                   value={capitalPayment}
                   onChange={(e) => setCapitalPayment(e.target.value)}
@@ -368,9 +397,16 @@ export default function RegisterPayment() {
                   InputProps={{
                     startAdornment: <AttachMoney />,
                   }}
-                  helperText={`Saldo pendiente: ${formatCurrency(
-                    loans.find((l) => l.id === selectedLoanId)?.remainingBalance || 0
-                  )}`}
+                  helperText={(() => {
+                    const l = loans.find((x) => x.id === selectedLoanId);
+                    if (!l) return '';
+                    const interes = estInterest(l);
+                    return `El pago cubre primero el interés del periodo (${formatCurrency(
+                      interes,
+                    )}) y el resto abona a capital. Saldo: ${formatCurrency(
+                      l.remainingBalance,
+                    )} · Para liquidar: ${formatCurrency(l.remainingBalance + interes)}`;
+                  })()}
                 />
 
                 <TextField
@@ -396,9 +432,9 @@ export default function RegisterPayment() {
                   disabled={submitting}
                   startIcon={submitting ? <CircularProgress size={20} /> : <AttachMoney />}
                   sx={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #5568d3 0%, #6a4193 100%)',
+                      background: 'linear-gradient(135deg, #0c2236 0%, #081A2C 100%)',
                     },
                   }}
                 >

@@ -120,7 +120,7 @@ export default function Balance() {
         sx={{
           flexGrow: 1,
           p: 3,
-          backgroundColor: '#f5f5f5',
+          backgroundColor: 'background.default',
           minHeight: '100vh',
         }}
       >
@@ -131,7 +131,7 @@ export default function Balance() {
             sx={{
               p: 3,
               mb: 3,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
               color: 'white',
             }}
           >

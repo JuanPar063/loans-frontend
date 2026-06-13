@@ -29,13 +29,22 @@ import {
 import AdminSidebar from '../../components/Layout/AdminSidebar';
 import { useAuth } from '../../hooks/useAuth';
 import { profileService, ProfileResponse } from '../../services/profile.service';
-import { adminService } from '../../services/admin.service';
+import api from '../../services/api.client';
 
-type Metrics = {
-  totalUsers: number;
-  totalLoans: number;
-  totalAmount: number;
-  pendingApprovals: number;
+// Métricas REALES del sistema (de /admin/dashboard/metrics)
+type SystemStats = {
+  totalClients: number;
+  averageCreditScore: number;
+  highRiskClients: number;
+  pendingLoansTotal: number;
+};
+
+type AuditEntry = {
+  id: string;
+  admin_id?: string;
+  user_id?: string;
+  action: string;
+  timestamp: string;
 };
 
 export default function AdminDashboard() {
@@ -46,22 +55,32 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // Estadísticas (traídas desde backend)
-  const [stats, setStats] = useState<Metrics | null>(null);
+  // Estadísticas REALES (traídas desde backend)
+  const [stats, setStats] = useState<SystemStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
-  const [statsError, setStatsError] = useState('');
+  const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
+  const [profiles, setProfiles] = useState<any[]>([]);
+
+  const nameFor = (userId?: string) => {
+    if (!userId) return '—';
+    const p = profiles.find((x) => x.id_user === userId);
+    return p ? (p.name || `${p.first_name} ${p.last_name}`).trim() : `${userId.slice(0, 8)}…`;
+  };
 
   const loadStats = async () => {
     if (!user) return;
     try {
       setStatsLoading(true);
-      setStatsError('');
-      const res = await adminService.getMetrics(user.id);
-      // asumir que la API devuelve el objeto directamente en res.data
-      setStats(res.data);
+      const [dash, logs, profs] = await Promise.all([
+        api.get('/admin/dashboard/metrics'),
+        api.get('/admin/audit-logs').catch(() => null),
+        api.get('/profiles').catch(() => null),
+      ]);
+      setStats(dash.data);
+      if (logs) setAuditLogs((logs.data?.data ?? logs.data ?? []).slice(0, 8));
+      if (profs) setProfiles(profs.data?.data ?? profs.data ?? []);
     } catch (err: any) {
       console.error('Error al cargar métricas:', err);
-      setStatsError('No se pudieron cargar las métricas del sistema');
     } finally {
       setStatsLoading(false);
     }
@@ -95,7 +114,7 @@ export default function AdminDashboard() {
         sx={{
           flexGrow: 1,
           p: 3,
-          backgroundColor: '#f5f5f5',
+          backgroundColor: 'background.default',
           minHeight: '100vh',
         }}
       >
@@ -106,7 +125,7 @@ export default function AdminDashboard() {
             sx={{
               p: 3,
               mb: 3,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
               color: 'white',
             }}
           >
@@ -152,39 +171,31 @@ export default function AdminDashboard() {
               {
                 icon: <People />,
                 color: '#3f51b5',
-                label: 'Total Usuarios',
-                value: stats ? stats.totalUsers : (statsLoading ? <CircularProgress size={20} /> : '—'),
-                chip: '+12% este mes',
-                chipColor: 'success',
-              },
-              {
-                icon: <AttachMoney />,
-                color: '#f50057',
-                label: 'Total Préstamos',
-                value: stats ? stats.totalLoans : (statsLoading ? <CircularProgress size={20} /> : '—'),
-                chip: '+5 esta semana',
-                chipColor: 'info',
+                label: 'Total Clientes',
+                value: stats ? stats.totalClients : (statsLoading ? <CircularProgress size={20} /> : '—'),
               },
               {
                 icon: <TrendingUp />,
                 color: '#4caf50',
-                label: 'Monto Total',
-                value: stats ? `$${stats.totalAmount.toLocaleString()}` : (statsLoading ? <CircularProgress size={20} /> : '—'),
-                chip: 'Activo',
-                chipColor: 'success',
+                label: 'Score Crediticio Promedio',
+                value: stats ? `${stats.averageCreditScore}/100` : (statsLoading ? <CircularProgress size={20} /> : '—'),
               },
               {
                 icon: <Settings />,
                 color: '#ff9800',
-                label: 'Pendientes',
-                value: stats ? stats.pendingApprovals : (statsLoading ? <CircularProgress size={20} /> : '—'),
-                chip: 'Requieren atención',
-                chipColor: 'warning',
+                label: 'Clientes de Alto Riesgo',
+                value: stats ? stats.highRiskClients : (statsLoading ? <CircularProgress size={20} /> : '—'),
+              },
+              {
+                icon: <AttachMoney />,
+                color: '#f50057',
+                label: 'Préstamos Pendientes',
+                value: stats ? stats.pendingLoansTotal : (statsLoading ? <CircularProgress size={20} /> : '—'),
               },
             ].map((item, i) => (
               <Card key={i} sx={{ flex: '1 1 250px', minWidth: 250 }}>
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Avatar sx={{ bgcolor: item.color, mr: 2 }}>{item.icon}</Avatar>
                     <Box>
                       <Typography variant="caption" color="text.secondary">
@@ -195,7 +206,6 @@ export default function AdminDashboard() {
                       </Typography>
                     </Box>
                   </Box>
-                  <Chip label={item.chip} size="small" color={item.chipColor as any} />
                 </CardContent>
               </Card>
             ))}
@@ -230,7 +240,7 @@ export default function AdminDashboard() {
                         sx={{
                           width: 64,
                           height: 64,
-                          bgcolor: '#667eea',
+                          bgcolor: '#0F2A43',
                           mr: 2,
                         }}
                       >
@@ -299,7 +309,7 @@ export default function AdminDashboard() {
                   <Card
                     sx={{
                       cursor: 'pointer',
-                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      '&:hover': { boxShadow: 4, backgroundColor: 'background.default' },
                       transition: 'all 0.3s',
                     }}
                     onClick={() => navigate('/admin/metrics')}
@@ -318,7 +328,7 @@ export default function AdminDashboard() {
                   <Card
                     sx={{
                       cursor: 'pointer',
-                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      '&:hover': { boxShadow: 4, backgroundColor: 'background.default' },
                       transition: 'all 0.3s',
                     }}
                     onClick={() => navigate('/admin/register-payment')}
@@ -337,7 +347,7 @@ export default function AdminDashboard() {
                   <Card
                     sx={{
                       cursor: 'pointer',
-                      '&:hover': { boxShadow: 4, backgroundColor: '#f5f5f5' },
+                      '&:hover': { boxShadow: 4, backgroundColor: 'background.default' },
                       transition: 'all 0.3s',
                     }}
                     onClick={() => navigate('/admin/profile')}
@@ -400,46 +410,30 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  <TableRow>
-                    <TableCell>juan_perez</TableCell>
-                    <TableCell>Solicitud de préstamo</TableCell>
-                    <TableCell>
-                      <Chip label="Pendiente" color="warning" size="small" />
-                    </TableCell>
-                    <TableCell>2025-01-15 10:30</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>maria_garcia</TableCell>
-                    <TableCell>Registro nuevo usuario</TableCell>
-                    <TableCell>
-                      <Chip label="Completado" color="success" size="small" />
-                    </TableCell>
-                    <TableCell>2025-01-15 09:15</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>carlos_lopez</TableCell>
-                    <TableCell>Pago de cuota</TableCell>
-                    <TableCell>
-                      <Chip label="Completado" color="success" size="small" />
-                    </TableCell>
-                    <TableCell>2025-01-14 16:45</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>ana_martinez</TableCell>
-                    <TableCell>Solicitud de préstamo</TableCell>
-                    <TableCell>
-                      <Chip label="En Revisión" color="info" size="small" />
-                    </TableCell>
-                    <TableCell>2025-01-14 14:20</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>pedro_rodriguez</TableCell>
-                    <TableCell>Actualización de perfil</TableCell>
-                    <TableCell>
-                      <Chip label="Completado" color="success" size="small" />
-                    </TableCell>
-                    <TableCell>2025-01-14 11:00</TableCell>
-                  </TableRow>
+                  {auditLogs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary">
+                          Sin actividad reciente registrada
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <TableRow key={log.id} hover>
+                        <TableCell>{nameFor(log.user_id)}</TableCell>
+                        <TableCell>{log.action}</TableCell>
+                        <TableCell>
+                          <Chip label="Registrado" color="success" size="small" />
+                        </TableCell>
+                        <TableCell>
+                          {log.timestamp
+                            ? new Date(log.timestamp).toLocaleString('es-CO')
+                            : '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>

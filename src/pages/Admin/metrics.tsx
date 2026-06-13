@@ -81,6 +81,21 @@ export default function Metrics() {
   const [searchClientId, setSearchClientId] = useState('');
   const [page, setPage] = useState(1);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  // Perfiles para resolver user_id ↔ nombre/cédula (búsqueda y etiquetas de tabla)
+  const [profiles, setProfiles] = useState<any[]>([]);
+
+  const fullName = (p: any) =>
+    (p?.name || `${p?.first_name || ''} ${p?.last_name || ''}`).trim();
+
+  // Etiqueta de cliente en la tabla: nombre si lo conocemos, si no el id corto.
+  const clientLabel = (userId: string) => {
+    const p = profiles.find((x) => x.id_user === userId);
+    return p ? fullName(p) : `${userId.slice(0, 8)}…`;
+  };
+  const clientDoc = (userId: string) => {
+    const p = profiles.find((x) => x.id_user === userId);
+    return p ? `${p.document_type || 'CC'} ${p.document_number}` : userId;
+  };
 
   useEffect(() => {
     loadDashboard();
@@ -95,12 +110,13 @@ export default function Metrics() {
     try {
       console.log('📊 Cargando dashboard de métricas...');
 
-      const response = await api.get(
-        `/admin/dashboard/metrics?page=${page}&limit=10`,
-      );
+      const [dashRes, profRes] = await Promise.all([
+        api.get(`/admin/dashboard/metrics?page=${page}&limit=10`),
+        api.get(`/profiles`).catch(() => null),
+      ]);
 
-      console.log('✅ Dashboard cargado:', response.data);
-      setDashboard(response.data);
+      setDashboard(dashRes.data);
+      if (profRes) setProfiles(profRes.data?.data ?? profRes.data ?? []);
     } catch (err: any) {
       console.error('❌ Error al cargar dashboard:', err);
       setError(
@@ -112,31 +128,50 @@ export default function Metrics() {
     }
   };
 
+  // Resuelve el texto buscado (nombre, cédula o UUID) a un user_id real.
+  const resolveUserId = (query: string): string | null => {
+    const q = query.trim().toLowerCase();
+    // ¿es ya un user_id conocido?
+    if (profiles.some((p) => p.id_user === query.trim())) return query.trim();
+    const match = profiles.find(
+      (p) =>
+        String(p.document_number).toLowerCase() === q ||
+        fullName(p).toLowerCase().includes(q),
+    );
+    return match ? match.id_user : null;
+  };
+
   const searchClientMetrics = async () => {
     if (!searchClientId.trim()) {
-      setError('Ingresa un ID de cliente');
+      setError('Ingresa un nombre o cédula');
       return;
     }
 
     setSearching(true);
     setError('');
+    setClientDetails(null);
+
+    const userId = resolveUserId(searchClientId);
+    if (!userId) {
+      setSearching(false);
+      setError(`No se encontró ningún cliente con "${searchClientId}". Verifica el nombre o la cédula.`);
+      return;
+    }
 
     try {
-      console.log(`🔍 Buscando métricas del cliente: ${searchClientId}`);
-
-      const response = await api.get(
-        `/admin/clients/${searchClientId}/metrics/export`,
-      );
-
-      console.log('✅ Detalles del cliente cargados:', response.data);
+      const response = await api.get(`/admin/clients/${userId}/metrics/export`);
       setClientDetails(response.data);
       setDetailsModalOpen(true);
     } catch (err: any) {
-      console.error('❌ Error al buscar cliente:', err);
-      setError(
-        err.response?.data?.message ||
-          'No se encontraron métricas para este cliente'
-      );
+      const status = err.response?.status;
+      if (status === 400 || status === 404) {
+        setError(
+          `El cliente ${clientLabel(userId)} aún no tiene métricas calculadas. ` +
+            `Genera primero su análisis crediticio.`,
+        );
+      } else {
+        setError(err.response?.data?.message || 'Error al consultar las métricas del cliente.');
+      }
     } finally {
       setSearching(false);
     }
@@ -199,7 +234,7 @@ export default function Metrics() {
         sx={{
           flexGrow: 1,
           p: 3,
-          backgroundColor: '#f5f5f5',
+          backgroundColor: 'background.default',
           minHeight: '100vh',
         }}
       >
@@ -210,7 +245,7 @@ export default function Metrics() {
             sx={{
               p: 3,
               mb: 3,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
               color: 'white',
             }}
           >
@@ -292,7 +327,7 @@ export default function Metrics() {
                     <Card sx={{ flex: 1 }}>
                       <CardContent>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <People sx={{ mr: 2, fontSize: 40, color: '#667eea' }} />
+                          <People sx={{ mr: 2, fontSize: 40, color: '#0F2A43' }} />
                           <Box>
                             <Typography variant="caption" color="text.secondary">
                               Total de Clientes
@@ -363,9 +398,9 @@ export default function Metrics() {
                     <TableContainer>
                       <Table>
                         <TableHead>
-                          <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                          <TableRow sx={{ backgroundColor: 'background.default' }}>
                             <TableCell>
-                              <strong>ID Cliente</strong>
+                              <strong>Cliente</strong>
                             </TableCell>
                             <TableCell align="center">
                               <strong>Score Crediticio</strong>
@@ -405,7 +440,12 @@ export default function Metrics() {
                                 }}
                               >
                                 <TableCell>
-                                  <strong>{client.clientId}</strong>
+                                  <Typography fontWeight={700}>
+                                    {clientLabel(client.clientId)}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {clientDoc(client.clientId)}
+                                  </Typography>
                                 </TableCell>
                                 <TableCell align="center">
                                   <Box
@@ -511,8 +551,8 @@ export default function Metrics() {
                 <Stack direction="row" spacing={2} alignItems="flex-start">
                   <TextField
                     fullWidth
-                    label="ID del Cliente"
-                    placeholder="Ej: client_12345"
+                    label="Nombre o cédula del cliente"
+                    placeholder="Ej: Carlos Gomez  o  1000000001"
                     value={searchClientId}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchClientId(e.target.value)}
                     onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && searchClientMetrics()}
@@ -524,9 +564,9 @@ export default function Metrics() {
                     onClick={searchClientMetrics}
                     disabled={searching}
                     sx={{
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #5568d3 0%, #6a4193 100%)',
+                        background: 'linear-gradient(135deg, #0c2236 0%, #081A2C 100%)',
                       },
                       minWidth: 150,
                     }}
@@ -540,7 +580,7 @@ export default function Metrics() {
                 <Stack spacing={3}>
                   <Paper sx={{ p: 3, backgroundColor: '#f0f4ff' }}>
                     <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-                      📊 Resumen del Cliente: {clientDetails.clientId}
+                      📊 Resumen del Cliente: {clientLabel(clientDetails.clientId)}
                     </Typography>
 
                     <Stack
@@ -613,8 +653,8 @@ export default function Metrics() {
                           key={idx}
                           sx={{
                             p: 2,
-                            backgroundColor: '#f5f5f5',
-                            borderLeft: '4px solid #667eea',
+                            backgroundColor: 'background.default',
+                            borderLeft: '4px solid #0F2A43',
                             borderRadius: 1,
                           }}
                         >
@@ -628,9 +668,9 @@ export default function Metrics() {
                     variant="contained"
                     startIcon={<FileDownload />}
                     sx={{
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #5568d3 0%, #6a4193 100%)',
+                        background: 'linear-gradient(135deg, #0c2236 0%, #081A2C 100%)',
                       },
                     }}
                   >

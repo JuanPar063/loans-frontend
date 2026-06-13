@@ -158,7 +158,7 @@ export default function AdminProfile() {
         sx={{
           flexGrow: 1,
           p: 3,
-          backgroundColor: '#f5f5f5',
+          backgroundColor: 'background.default',
           minHeight: '100vh',
         }}
       >
@@ -168,7 +168,7 @@ export default function AdminProfile() {
             sx={{
               p: 3,
               mb: 3,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
               color: 'white',
             }}
           >
@@ -200,7 +200,7 @@ export default function AdminProfile() {
                       sx={{
                         width: 80,
                         height: 80,
-                        bgcolor: '#667eea',
+                        bgcolor: '#0F2A43',
                         mr: 3,
                         fontSize: '2rem',
                       }}
@@ -230,9 +230,9 @@ export default function AdminProfile() {
                         startIcon={<Edit />}
                         onClick={handleEdit}
                         sx={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
                           '&:hover': {
-                            background: 'linear-gradient(135deg, #5568d3 0%, #6a4193 100%)',
+                            background: 'linear-gradient(135deg, #0c2236 0%, #081A2C 100%)',
                           },
                         }}
                       >
@@ -357,9 +357,9 @@ export default function AdminProfile() {
                           onClick={handleSave}
                           disabled={saving}
                           sx={{
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            background: 'linear-gradient(135deg, #0F2A43 0%, #33506F 100%)',
                             '&:hover': {
-                              background: 'linear-gradient(135deg, #5568d3 0%, #6a4193 100%)',
+                              background: 'linear-gradient(135deg, #0c2236 0%, #081A2C 100%)',
                             },
                           }}
                         >
